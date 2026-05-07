@@ -12,7 +12,8 @@ from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_TARGET_DIR = Path("~/.agents").expanduser()
+DEFAULT_CODEX_HOME = Path("~/.codex").expanduser()
+DEFAULT_AGENTS_HOME = Path("~/.agents").expanduser()
 RENAMED_SKILLS = {
     "software-design-philosophy": "design-before-coding",
     "software-design-philosophy-review": "design-review",
@@ -31,10 +32,16 @@ def parse_args() -> argparse.Namespace:
         description="把当前仓库中的 AGENTS.md 和 skills/ 安装到本机 agent 配置目录。"
     )
     parser.add_argument(
-        "--target-dir",
+        "--codex-home",
         type=Path,
-        default=DEFAULT_TARGET_DIR,
-        help=f"目标目录，默认是 {DEFAULT_TARGET_DIR}",
+        default=DEFAULT_CODEX_HOME,
+        help=f"Codex 配置目录，默认是 {DEFAULT_CODEX_HOME}",
+    )
+    parser.add_argument(
+        "--agents-home",
+        type=Path,
+        default=DEFAULT_AGENTS_HOME,
+        help=f"用户级 agents 目录，默认是 {DEFAULT_AGENTS_HOME}",
     )
     parser.add_argument(
         "--dry-run",
@@ -58,28 +65,28 @@ def same_path_content(left: Path, right: Path) -> bool:
     return False
 
 
-def collect_actions(target_dir: Path) -> list[InstallAction]:
+def collect_actions(codex_home: Path, agents_home: Path) -> list[InstallAction]:
     actions: list[InstallAction] = []
 
     agents_file = REPO_ROOT / "AGENTS.md"
     if agents_file.exists():
-        actions.append(InstallAction(agents_file, target_dir / "AGENTS.md", "file"))
+        actions.append(InstallAction(agents_file, codex_home / "AGENTS.md", "file"))
 
     skills_dir = REPO_ROOT / "skills"
     if skills_dir.exists():
         for skill_dir in sorted(path for path in skills_dir.iterdir() if path.is_dir()):
             if skill_dir.name.startswith("."):
                 continue
-            actions.append(InstallAction(skill_dir, target_dir / "skills" / skill_dir.name, "dir"))
+            actions.append(InstallAction(skill_dir, agents_home / "skills" / skill_dir.name, "dir"))
 
     return actions
 
 
-def backup_existing(destination: Path, target_dir: Path, backup_root: Path) -> Path | None:
+def backup_existing(destination: Path, backup_base: Path, backup_root: Path) -> Path | None:
     if not destination.exists():
         return None
 
-    backup_path = backup_root / destination.relative_to(target_dir)
+    backup_path = backup_root / destination.relative_to(backup_base)
     backup_path.parent.mkdir(parents=True, exist_ok=True)
 
     if destination.is_dir():
@@ -90,7 +97,7 @@ def backup_existing(destination: Path, target_dir: Path, backup_root: Path) -> P
     return backup_path
 
 
-def install_action(action: InstallAction, target_dir: Path, backup_root: Path, dry_run: bool) -> None:
+def install_action(action: InstallAction, backup_base: Path, backup_root: Path, dry_run: bool) -> None:
     if action.destination.exists() and same_path_content(action.source, action.destination):
         print(f"跳过，内容相同: {action.destination}")
         return
@@ -102,7 +109,7 @@ def install_action(action: InstallAction, target_dir: Path, backup_root: Path, d
             print(f"将安装: {action.destination}")
         return
 
-    backup_path = backup_existing(action.destination, target_dir, backup_root)
+    backup_path = backup_existing(action.destination, backup_base, backup_root)
     if backup_path:
         print(f"已备份: {action.destination} -> {backup_path}")
 
@@ -121,9 +128,9 @@ def install_action(action: InstallAction, target_dir: Path, backup_root: Path, d
     print(f"已安装: {action.destination}")
 
 
-def remove_renamed_skills(target_dir: Path, backup_root: Path, dry_run: bool) -> None:
+def remove_renamed_skills(agents_home: Path, backup_root: Path, dry_run: bool) -> None:
     skills_source_dir = REPO_ROOT / "skills"
-    target_skills_dir = target_dir / "skills"
+    target_skills_dir = agents_home / "skills"
 
     for old_name, new_name in RENAMED_SKILLS.items():
         if not (skills_source_dir / new_name).exists():
@@ -137,7 +144,7 @@ def remove_renamed_skills(target_dir: Path, backup_root: Path, dry_run: bool) ->
             print(f"将备份并移除旧 skill 名称: {old_destination}")
             continue
 
-        backup_path = backup_existing(old_destination, target_dir, backup_root)
+        backup_path = backup_existing(old_destination, agents_home, backup_root)
         if backup_path:
             print(f"已备份旧 skill: {old_destination} -> {backup_path}")
 
@@ -149,23 +156,57 @@ def remove_renamed_skills(target_dir: Path, backup_root: Path, dry_run: bool) ->
         print(f"已移除旧 skill 名称: {old_destination}")
 
 
+def remove_misplaced_agents_file(agents_home: Path, backup_root: Path, dry_run: bool) -> None:
+    misplaced_file = agents_home / "AGENTS.md"
+    source_file = REPO_ROOT / "AGENTS.md"
+
+    if not misplaced_file.exists():
+        return
+
+    if dry_run:
+        if source_file.exists() and same_path_content(source_file, misplaced_file):
+            print(f"将移除误装的 AGENTS.md: {misplaced_file}")
+        else:
+            print(f"将备份并移除误装的 AGENTS.md: {misplaced_file}")
+        return
+
+    if source_file.exists() and same_path_content(source_file, misplaced_file):
+        misplaced_file.unlink()
+        print(f"已移除误装的 AGENTS.md: {misplaced_file}")
+        return
+
+    backup_path = backup_existing(misplaced_file, agents_home, backup_root)
+    if backup_path:
+        print(f"已备份误装的 AGENTS.md: {misplaced_file} -> {backup_path}")
+    misplaced_file.unlink()
+    print(f"已移除误装的 AGENTS.md: {misplaced_file}")
+
+
 def main() -> None:
     args = parse_args()
-    target_dir = args.target_dir.expanduser().resolve()
-    backup_root = target_dir / ".backups" / datetime.now().strftime("%Y%m%d-%H%M%S")
-    actions = collect_actions(target_dir)
+    codex_home = args.codex_home.expanduser().resolve()
+    agents_home = args.agents_home.expanduser().resolve()
+    timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+    codex_backup_root = codex_home / ".backups" / timestamp
+    agents_backup_root = agents_home / ".backups" / timestamp
+    actions = collect_actions(codex_home, agents_home)
 
     if not actions:
         print("没有找到可安装的配置。")
         return
 
     print(f"仓库目录: {REPO_ROOT}")
-    print(f"目标目录: {target_dir}")
+    print(f"Codex 配置目录: {codex_home}")
+    print(f"Agents 目录: {agents_home}")
 
     for action in actions:
-        install_action(action, target_dir, backup_root, args.dry_run)
+        if action.destination.is_relative_to(codex_home):
+            install_action(action, codex_home, codex_backup_root, args.dry_run)
+        else:
+            install_action(action, agents_home, agents_backup_root, args.dry_run)
 
-    remove_renamed_skills(target_dir, backup_root, args.dry_run)
+    remove_renamed_skills(agents_home, agents_backup_root, args.dry_run)
+    remove_misplaced_agents_file(agents_home, agents_backup_root, args.dry_run)
 
 
 if __name__ == "__main__":
