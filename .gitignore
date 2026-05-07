@@ -1,0 +1,22 @@
+.DS_Store
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+
+# 本地环境和密钥
+.env
+.env.*
+*.key
+*.pem
+*.token
+secrets.*
+tokens.*
+
+# 本地状态
+.cache/
+logs/
+sessions/
+backups/
+
