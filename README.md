@@ -57,5 +57,4 @@ uv run python scripts/install.py
 - 提交前检查不要包含密钥、token、缓存和本地会话。
 - `skills/` 只放自己维护的 skill。
 - 如果目标位置已有同名文件或 skill，安装脚本会在覆盖前备份到目标目录的 `.backups/`。
-- 如果 skill 在仓库中改名，安装脚本也会备份并移除已知的旧名称，避免同一个 skill 以新旧两个名字同时存在。
 - Codex 全局指令安装到 `~/.codex/AGENTS.md`；用户级 skills 安装到 `~/.agents/skills/`。

@@ -14,10 +14,6 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_CODEX_HOME = Path("~/.codex").expanduser()
 DEFAULT_AGENTS_HOME = Path("~/.agents").expanduser()
-RENAMED_SKILLS = {
-    "software-design-philosophy": "design-before-coding",
-    "software-design-philosophy-review": "design-review",
-}
 
 
 @dataclass(frozen=True)
@@ -128,34 +124,6 @@ def install_action(action: InstallAction, backup_base: Path, backup_root: Path, 
     print(f"已安装: {action.destination}")
 
 
-def remove_renamed_skills(agents_home: Path, backup_root: Path, dry_run: bool) -> None:
-    skills_source_dir = REPO_ROOT / "skills"
-    target_skills_dir = agents_home / "skills"
-
-    for old_name, new_name in RENAMED_SKILLS.items():
-        if not (skills_source_dir / new_name).exists():
-            continue
-
-        old_destination = target_skills_dir / old_name
-        if not old_destination.exists():
-            continue
-
-        if dry_run:
-            print(f"将备份并移除旧 skill 名称: {old_destination}")
-            continue
-
-        backup_path = backup_existing(old_destination, agents_home, backup_root)
-        if backup_path:
-            print(f"已备份旧 skill: {old_destination} -> {backup_path}")
-
-        if old_destination.is_dir():
-            shutil.rmtree(old_destination)
-        else:
-            old_destination.unlink()
-
-        print(f"已移除旧 skill 名称: {old_destination}")
-
-
 def remove_misplaced_agents_file(agents_home: Path, backup_root: Path, dry_run: bool) -> None:
     misplaced_file = agents_home / "AGENTS.md"
     source_file = REPO_ROOT / "AGENTS.md"
@@ -205,7 +173,6 @@ def main() -> None:
         else:
             install_action(action, agents_home, agents_backup_root, args.dry_run)
 
-    remove_renamed_skills(agents_home, agents_backup_root, args.dry_run)
     remove_misplaced_agents_file(agents_home, agents_backup_root, args.dry_run)
 
 
