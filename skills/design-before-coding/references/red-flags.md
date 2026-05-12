@@ -10,6 +10,9 @@
 - `special-general mixture`
 - `conjoined methods`
 - `nonobvious code`
+- `concept explosion`
+- `read-model-as-source-of-truth`
+- `responsibility-boundary-turned-class`
 
 ## `shallow module`
 
@@ -122,3 +125,45 @@
 下一步追问：
 
 - 不明显是因为抽象弱、命名弱，还是缺少关键说明？
+
+## `concept explosion`
+
+定义：
+
+- 一个设计为了表达边界而引入大量新名词、类型、DTO、service 或事件。
+
+常见伪装：
+
+- 每个职责边界都被实现成同名对象，读模型被拆成许多小 schema。
+
+下一步追问：
+
+- 哪些只是职责边界？哪些必须存在于代码？能否压平、合并或延后？
+
+## `read-model-as-source-of-truth`
+
+定义：
+
+- API 或 UI 读模型被误当作持久化事实源、领域对象或业务模块之间的内部传递对象。
+
+常见伪装：
+
+- 把 response snapshot 存进数据库，或让核心逻辑依赖展示字段。
+
+下一步追问：
+
+- 真正的事实状态在哪里？读模型能否只在 API 边界临时组装？
+
+## `responsibility-boundary-turned-class`
+
+定义：
+
+- 为了说明 owner 而命名的职责边界，被过早实现成 class、DTO、service 或 adapter。
+
+常见伪装：
+
+- 某个对象只有一个转发方法，或只保存调用方已经知道的状态。
+
+下一步追问：
+
+- 模块内函数、私有方法或现有 owner 上的聚焦方法是否足够？

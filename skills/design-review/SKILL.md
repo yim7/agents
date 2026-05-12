@@ -47,17 +47,10 @@ description: Reviews specs, plans, PR descriptions, interface docs, comments, co
    - 每个新抽象是否移除或隐藏了足够复杂度？
    - 删除、缩小可见性或一个聚焦方法是否能用更少概念解决？
    - artifact 是在降低净复杂度，还是只让分层看起来更干净？
-7. 检查警讯：
-   - `shallow module`
-   - `information leakage`
-   - `temporal decomposition`
-   - `overexposure`
-   - `over-abstraction`
-   - `pass-through method`
-   - `speculative abstraction`
-   - `special-general mixture`
-   - `conjoined methods`
-   - `nonobvious code`
+   - 每个新名词是职责边界、模块、API 契约、运行时对象，还是持久化事实源？
+   - 职责边界是否被不必要地升级成 class、DTO、service、adapter 或 protocol？
+   - read model 是否被误当作事实源、领域对象或内部传递对象？
+7. 检查下方完整警讯列表，并按当前 artifact 类型筛选适用项。
 8. 检查正向设计信号：
    - 深模块
    - 简单接口
@@ -83,6 +76,7 @@ description: Reviews specs, plans, PR descriptions, interface docs, comments, co
 - 重新检查所有相关层和任务边界。
 - 如果多个 finding 有同一个根因，报告根设计问题，而不是批准一串局部补丁。
 - 当某个 finding 被局部修复后，继续检查修复是否造成相邻泄漏。
+- 当某个 finding 被修复后，继续检查修复是否通过新增过多概念、对象或 DTO 增加认知负担。
 - 不要因为原 finding 消失就认为设计干净；确认底层设计压力也消失了。
 - 如果用户提供累积列表，要明确区分 stale finding 和当前 finding。
 
@@ -90,6 +84,8 @@ description: Reviews specs, plans, PR descriptions, interface docs, comments, co
 
 - 拒绝需要临时 adapter、双重事实源或半迁移共享接口的任务拆分。
 - 共享边界变化必须和所有直接消费者在同一个任务中移动。
+- 优先接受曳光弹式业务切片：真实输入、核心逻辑、状态持久化和可观察输出在同一薄闭环里推进。
+- 如果 plan 按前端、后端、数据库、API 等技术层拆分，并会导致临时接口、不可验证半成品或后续补丁，应作为 finding。
 - public/read-model 层不应接收 private runtime state，除非那正是目标抽象。
 - 测试 fixture 也算接口消费者；如果生产代码不该依赖 private state，测试也不应依赖。
 
@@ -104,6 +100,7 @@ description: Reviews specs, plans, PR descriptions, interface docs, comments, co
 - 让接口比必要程度更复杂
 - 增加抽象成本却没有降低净复杂度
 - 鼓励战术补丁，而不是更干净的抽象
+- 概念爆炸明显增加维护者认知负担
 
 不要为以下内容报告 finding：
 
@@ -125,10 +122,25 @@ Findings 放在最前面。每条 finding 要简短，并围绕设计风险。
 - 为什么它是复杂度问题
 - 未来可能造成什么后果
 - 推荐的改进方向
+- 推荐方向应包含最小可行修复；不要默认建议新增类、DTO、service 或 adapter
 
 审查 `spec` 或 `plan` 时，要说明问题在实现中可能如何显现。
 
 需要稳定输出结构时，加载 `references/output-format.md`。
+
+## 抽象减法
+
+当审查对象处于早期设计、spec 或 plan 阶段时，除了 findings，还要主动寻找可以降低概念数量的地方。只有当它会实质降低认知负担时才提出。
+
+优先建议：
+
+- 把职责边界保留为文档约束，而不是实现成同名类。
+- 把浅对象降级为模块内聚焦函数。
+- 把只用于展示的 read model 限定在 API 边界，不持久化、不传入业务核心。
+- 压平不必要嵌套的响应 schema。
+- 用一条薄但完整的功能闭环替代按层拆出的半成品任务。
+
+好的 review 不只指出边界不清，也要防止边界清楚后概念爆炸。
 
 ## 无 Finding 规则
 
@@ -160,6 +172,9 @@ Findings 放在最前面。每条 finding 要简短，并围绕设计风险。
 - `special-general mixture`
 - `conjoined methods`
 - `nonobvious code`
+- `concept explosion`
+- `read-model-as-source-of-truth`
+- `responsibility-boundary-turned-class`
 
 ## 引用资料
 
