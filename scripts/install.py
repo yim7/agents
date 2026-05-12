@@ -5,8 +5,8 @@ from __future__ import annotations
 
 import argparse
 import filecmp
+import json
 import shutil
-from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 
@@ -14,166 +14,200 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_CODEX_HOME = Path("~/.codex").expanduser()
 DEFAULT_AGENTS_HOME = Path("~/.agents").expanduser()
+DEFAULT_CLAUDE_HOME = Path("~/.claude").expanduser()
+MANIFEST_NAME = ".installed-skills.json"
 
 
-@dataclass(frozen=True)
-class InstallAction:
-    source: Path
-    destination: Path
-    kind: str
+# ── Manifest ────────────────────────────────────────────────
 
 
-def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(
-        description="把当前仓库中的 AGENTS.md 和 skills/ 安装到本机 agent 配置目录。"
-    )
-    parser.add_argument(
-        "--codex-home",
-        type=Path,
-        default=DEFAULT_CODEX_HOME,
-        help=f"Codex 配置目录，默认是 {DEFAULT_CODEX_HOME}",
-    )
-    parser.add_argument(
-        "--agents-home",
-        type=Path,
-        default=DEFAULT_AGENTS_HOME,
-        help=f"用户级 agents 目录，默认是 {DEFAULT_AGENTS_HOME}",
-    )
-    parser.add_argument(
-        "--dry-run",
-        action="store_true",
-        help="只打印将要执行的动作，不修改文件。",
-    )
-    return parser.parse_args()
+def read_manifest(path: Path) -> dict:
+    if path.exists():
+        return json.loads(path.read_text())
+    return {"agents": None, "skills": []}
 
 
-def same_path_content(left: Path, right: Path) -> bool:
+def write_manifest(path: Path, data: dict) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n")
+
+
+# ── File helpers ────────────────────────────────────────────
+
+
+def same_content(left: Path, right: Path) -> bool:
     if not left.exists() or not right.exists():
         return False
     if left.is_file() and right.is_file():
         return filecmp.cmp(left, right, shallow=False)
     if left.is_dir() and right.is_dir():
-        left_files = sorted(path.relative_to(left) for path in left.rglob("*") if path.is_file())
-        right_files = sorted(path.relative_to(right) for path in right.rglob("*") if path.is_file())
+        left_files = sorted(p.relative_to(left) for p in left.rglob("*") if p.is_file())
+        right_files = sorted(p.relative_to(right) for p in right.rglob("*") if p.is_file())
         if left_files != right_files:
             return False
-        return all(filecmp.cmp(left / rel, right / rel, shallow=False) for rel in left_files)
+        return all(filecmp.cmp(left / r, right / r, shallow=False) for r in left_files)
     return False
 
 
-def collect_actions(codex_home: Path, agents_home: Path) -> list[InstallAction]:
-    actions: list[InstallAction] = []
-
-    agents_file = REPO_ROOT / "AGENTS.md"
-    if agents_file.exists():
-        actions.append(InstallAction(agents_file, codex_home / "AGENTS.md", "file"))
-
-    skills_dir = REPO_ROOT / "skills"
-    if skills_dir.exists():
-        for skill_dir in sorted(path for path in skills_dir.iterdir() if path.is_dir()):
-            if skill_dir.name.startswith("."):
-                continue
-            actions.append(InstallAction(skill_dir, agents_home / "skills" / skill_dir.name, "dir"))
-
-    return actions
-
-
-def backup_existing(destination: Path, backup_base: Path, backup_root: Path) -> Path | None:
-    if not destination.exists():
+def backup(path: Path, base: Path, backup_root: Path) -> Path | None:
+    if not path.exists():
         return None
-
-    backup_path = backup_root / destination.relative_to(backup_base)
-    backup_path.parent.mkdir(parents=True, exist_ok=True)
-
-    if destination.is_dir():
-        shutil.copytree(destination, backup_path)
+    bp = backup_root / path.relative_to(base)
+    bp.parent.mkdir(parents=True, exist_ok=True)
+    if path.is_dir():
+        shutil.copytree(path, bp)
     else:
-        shutil.copy2(destination, backup_path)
+        shutil.copy2(path, bp)
+    return bp
 
-    return backup_path
 
-
-def install_action(action: InstallAction, backup_base: Path, backup_root: Path, dry_run: bool) -> None:
-    if action.destination.exists() and same_path_content(action.source, action.destination):
-        print(f"跳过，内容相同: {action.destination}")
+def safe_remove(path: Path) -> None:
+    if not path.exists():
         return
+    if path.is_dir():
+        shutil.rmtree(path)
+    else:
+        path.unlink()
 
+
+# ── Install ────────────────────────────────────────────────
+
+
+def install_file(source: Path, dest: Path, base: Path, backup_root: Path, dry_run: bool) -> bool:
+    """Install a single file or directory. Returns True if anything changed."""
+    if dest.exists() and same_content(source, dest):
+        return False
     if dry_run:
-        if action.destination.exists():
-            print(f"将备份并覆盖: {action.destination}")
-        else:
-            print(f"将安装: {action.destination}")
-        return
-
-    backup_path = backup_existing(action.destination, backup_base, backup_root)
-    if backup_path:
-        print(f"已备份: {action.destination} -> {backup_path}")
-
-    action.destination.parent.mkdir(parents=True, exist_ok=True)
-    if action.destination.exists():
-        if action.destination.is_dir():
-            shutil.rmtree(action.destination)
-        else:
-            action.destination.unlink()
-
-    if action.kind == "dir":
-        shutil.copytree(action.source, action.destination)
+        print(f"  将{'备份并覆盖' if dest.exists() else '安装'}: {dest}")
+        return True
+    bp = backup(dest, base, backup_root)
+    if bp:
+        print(f"  已备份: {dest} -> {bp}")
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    safe_remove(dest)
+    if source.is_dir():
+        shutil.copytree(source, dest)
     else:
-        shutil.copy2(action.source, action.destination)
+        shutil.copy2(source, dest)
+    print(f"  已安装: {dest}")
+    return True
 
-    print(f"已安装: {action.destination}")
+
+# ── Sync logic ──────────────────────────────────────────────
+
+
+def sync_target(
+    agents_source: Path | None,
+    skills_source: Path | None,
+    target: Path,
+    backup_root: Path,
+    dry_run: bool,
+    *,
+    agents_dest_name: str = "AGENTS.md",
+) -> None:
+    """Sync one target directory: install/update from repo, remove stale tracked items."""
+    manifest_path = target / MANIFEST_NAME
+    manifest = read_manifest(manifest_path)
+    changed = False
+
+    # Sync agents file
+    if agents_source and agents_source.exists():
+        agents_dest = target / agents_dest_name
+        if install_file(agents_source, agents_dest, target, backup_root, dry_run):
+            changed = True
+        if not dry_run:
+            manifest["agents"] = agents_dest_name
+
+    # Sync skills
+    repo_skills: list[str] = []
+    if skills_source and skills_source.exists():
+        for d in sorted(skills_source.iterdir()):
+            if d.is_dir() and not d.name.startswith("."):
+                repo_skills.append(d.name)
+                dest = target / "skills" / d.name
+                if install_file(d, dest, target, backup_root, dry_run):
+                    changed = True
+
+    # Remove skills in manifest but not in repo
+    for skill in manifest.get("skills", []):
+        if skill not in repo_skills:
+            p = target / "skills" / skill
+            if p.exists():
+                if dry_run:
+                    print(f"  将移除旧 skill: {p}")
+                else:
+                    backup(p, target, backup_root)
+                    safe_remove(p)
+                    print(f"  已移除旧 skill: {p}")
+                    changed = True
+
+    if not dry_run:
+        manifest["skills"] = repo_skills
+        if changed or not manifest_path.exists():
+            write_manifest(manifest_path, manifest)
 
 
 def remove_misplaced_agents_file(agents_home: Path, backup_root: Path, dry_run: bool) -> None:
-    misplaced_file = agents_home / "AGENTS.md"
-    source_file = REPO_ROOT / "AGENTS.md"
-
-    if not misplaced_file.exists():
+    misplaced = agents_home / "AGENTS.md"
+    source = REPO_ROOT / "AGENTS.md"
+    if not misplaced.exists():
         return
-
     if dry_run:
-        if source_file.exists() and same_path_content(source_file, misplaced_file):
-            print(f"将移除误装的 AGENTS.md: {misplaced_file}")
-        else:
-            print(f"将备份并移除误装的 AGENTS.md: {misplaced_file}")
+        tag = "移除" if (source.exists() and same_content(source, misplaced)) else "备份并移除"
+        print(f"  将{tag}误装的 AGENTS.md: {misplaced}")
         return
+    if source.exists() and same_content(source, misplaced):
+        misplaced.unlink()
+        print(f"  已移除误装的 AGENTS.md: {misplaced}")
+    else:
+        bp = backup(misplaced, agents_home, backup_root)
+        if bp:
+            print(f"  已备份: {misplaced} -> {bp}")
+        misplaced.unlink()
+        print(f"  已移除误装的 AGENTS.md: {misplaced}")
 
-    if source_file.exists() and same_path_content(source_file, misplaced_file):
-        misplaced_file.unlink()
-        print(f"已移除误装的 AGENTS.md: {misplaced_file}")
-        return
 
-    backup_path = backup_existing(misplaced_file, agents_home, backup_root)
-    if backup_path:
-        print(f"已备份误装的 AGENTS.md: {misplaced_file} -> {backup_path}")
-    misplaced_file.unlink()
-    print(f"已移除误装的 AGENTS.md: {misplaced_file}")
+# ── CLI ─────────────────────────────────────────────────────
+
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        description="同步 AGENTS.md 和 skills 到本机 agent 配置目录。"
+    )
+    parser.add_argument("--codex-home", type=Path, default=DEFAULT_CODEX_HOME)
+    parser.add_argument("--agents-home", type=Path, default=DEFAULT_AGENTS_HOME)
+    parser.add_argument("--claude-home", type=Path, default=DEFAULT_CLAUDE_HOME)
+    parser.add_argument("--dry-run", action="store_true", help="只预览，不修改文件。")
+    return parser.parse_args()
 
 
 def main() -> None:
     args = parse_args()
-    codex_home = args.codex_home.expanduser().resolve()
-    agents_home = args.agents_home.expanduser().resolve()
-    timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
-    codex_backup_root = codex_home / ".backups" / timestamp
-    agents_backup_root = agents_home / ".backups" / timestamp
-    actions = collect_actions(codex_home, agents_home)
-
-    if not actions:
-        print("没有找到可安装的配置。")
-        return
+    codex = args.codex_home.expanduser().resolve()
+    agents = args.agents_home.expanduser().resolve()
+    claude = args.claude_home.expanduser().resolve()
+    ts = datetime.now().strftime("%Y%m%d-%H%M%S")
 
     print(f"仓库目录: {REPO_ROOT}")
-    print(f"Codex 配置目录: {codex_home}")
-    print(f"Agents 目录: {agents_home}")
+    print(f"Codex: {codex}")
+    print(f"Agents: {agents}")
+    print(f"Claude: {claude}")
 
-    for action in actions:
-        if action.destination.is_relative_to(codex_home):
-            install_action(action, codex_home, codex_backup_root, args.dry_run)
-        else:
-            install_action(action, agents_home, agents_backup_root, args.dry_run)
+    skills_dir = REPO_ROOT / "skills"
+    agents_file = REPO_ROOT / "AGENTS.md"
 
-    remove_misplaced_agents_file(agents_home, agents_backup_root, args.dry_run)
+    if skills_dir.exists() and not any(
+        d.is_dir() and not d.name.startswith(".")
+        for d in skills_dir.iterdir()
+    ):
+        print("没有找到可安装的 skill。")
+        return
+
+    print()
+    sync_target(agents_file, None, codex, codex / ".backups" / ts, args.dry_run)
+    sync_target(None, skills_dir, agents, agents / ".backups" / ts, args.dry_run)
+    sync_target(agents_file, skills_dir, claude, claude / ".backups" / ts, args.dry_run, agents_dest_name="CLAUDE.md")
+    remove_misplaced_agents_file(agents, agents / ".backups" / ts, args.dry_run)
 
 
 if __name__ == "__main__":

@@ -18,29 +18,31 @@ agents/
 
 ## 使用方式
 
-先预览安装动作：
+先预览同步动作：
 
 ```bash
 uv run python scripts/install.py --dry-run
 ```
 
-确认后执行安装：
+确认后执行：
 
 ```bash
 uv run python scripts/install.py
 ```
 
-默认安装到：
+默认同步到：
 
 ```text
 ~/.codex/AGENTS.md
+~/.claude/CLAUDE.md
 ~/.agents/skills/
+~/.claude/skills/
 ```
 
 如果要安装到其他目录：
 
 ```bash
-uv run python scripts/install.py --codex-home ~/.codex --agents-home ~/.agents
+uv run python scripts/install.py --claude-home ~/.claude
 ```
 
 ## 同步到新电脑
@@ -52,9 +54,18 @@ uv run python scripts/install.py --dry-run
 uv run python scripts/install.py
 ```
 
+## 同步行为
+
+脚本会保持目标目录和仓库一致：
+
+- 仓库中新增的 skill → 安装到目标目录
+- 仓库中已有的 skill → 内容有变化时更新
+- 仓库中删除的 skill → 从目标目录移除（仅限本仓库安装过的）
+
+每个目标目录维护一个 `.installed-skills.json` manifest，记录本仓库安装过的内容。用户自己添加的 skill 不会被触碰。
+
 ## 注意事项
 
 - 提交前检查不要包含密钥、token、缓存和本地会话。
 - `skills/` 只放自己维护的 skill。
-- 如果目标位置已有同名文件或 skill，安装脚本会在覆盖前备份到目标目录的 `.backups/`。
-- Codex 全局指令安装到 `~/.codex/AGENTS.md`；用户级 skills 安装到 `~/.agents/skills/`。
+- 覆盖或移除前会备份到目标目录的 `.backups/`。
