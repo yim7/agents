@@ -1,0 +1,4 @@
+interface:
+  display_name: "Obsidian 网页精选归档"
+  short_description: "把网页和社媒内容筛成 Obsidian 知识笔记"
+  default_prompt: "Use $obsidian-web-curator to archive this URL into curated Obsidian notes."
