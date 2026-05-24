@@ -11,19 +11,25 @@ description: 从视频 URL 或本地视频提取字幕/转写并总结内容。�
 
 - 依赖工具：`yt-dlp`、`ffmpeg`、`mlx_whisper`。
 - 缺少工具时说明影响，不要自动安装依赖。
-- 需要登录、会员、地区权限或 cookies 时说明限制；不要要求或保存 cookies、token、会话文件。
+- 默认不读取浏览器 cookies。字幕或视频访问需要登录态时，必须先确认用户是否允许使用本地浏览器登录态；用户已明确给过本次或长期授权时，再用 `yt-dlp --cookies-from-browser` 读取。
+- 首次读取浏览器 cookies 时，macOS 可能弹出 Keychain 密码框；用户可以在系统弹窗中选择本次允许或始终允许。不要在聊天中要求用户粘贴任何密码或 cookie。
+- 不能因为公开音频可下载就自行跳过登录态授权判断。只有用户不同意、没有登录态或读取失败时，才说明限制并改走公开音频下载和转写。
+- 不要要求用户提供或保存 cookies、token、会话文件。
 - 字幕、音频、转写文本和中间 JSON 都是临时产物，放在任务临时目录或用户指定目录，不要写入当前代码仓库。
 
 ## 流程
 
-先确认元数据和字幕：
+先确认元数据和字幕。弹幕不算可总结字幕。若字幕接口提示需要登录态，必须先确认用户是否允许读取本地浏览器 cookies：
 
 ```bash
 yt-dlp --dump-json --no-playlist "VIDEO_URL"
 yt-dlp --list-subs "VIDEO_URL"
+
+yt-dlp --cookies-from-browser chrome --dump-json --no-playlist "VIDEO_URL"
+yt-dlp --cookies-from-browser chrome --list-subs "VIDEO_URL"
 ```
 
-有字幕时优先下载人工字幕，其次自动字幕；无字幕时下载音频。本地视频可直接用 `ffmpeg` 抽音频：
+有字幕时优先下载人工字幕，其次自动字幕。只有确认没有可用字幕，或用户拒绝/无法使用登录态后，才下载音频。本地视频可直接用 `ffmpeg` 抽音频：
 
 ```bash
 yt-dlp \
