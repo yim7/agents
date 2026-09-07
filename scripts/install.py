@@ -186,6 +186,9 @@ def main() -> None:
     codex = args.codex_home.expanduser().resolve()
     agents = args.agents_home.expanduser().resolve()
     claude = args.claude_home.expanduser().resolve()
+    for target in (agents, claude):
+        if (target / "skills").is_symlink():
+            raise SystemExit(f"请先将软链接替换为独立目录，再安装: {target / 'skills'}")
     ts = datetime.now().strftime("%Y%m%d-%H%M%S")
 
     print(f"仓库目录: {REPO_ROOT}")
