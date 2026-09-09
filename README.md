@@ -34,15 +34,13 @@ uv run python scripts/install.py
 
 ```text
 ~/.codex/AGENTS.md
-~/.claude/CLAUDE.md
 ~/.agents/skills/
-~/.claude/skills/
 ```
 
 如果要安装到其他目录：
 
 ```bash
-uv run python scripts/install.py --claude-home ~/.claude
+uv run python scripts/install.py --codex-home /path/to/codex --agents-home /path/to/agents
 ```
 
 ## 同步到新电脑
