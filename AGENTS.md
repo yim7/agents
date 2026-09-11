@@ -15,6 +15,7 @@
 
 ## 工作流
 
+- 开发交付：使用 `deliver` 技能。
 - Git 提交：使用 `git-commit` 技能。
 - 项目配置：使用 `project-conventions` 技能。
 
