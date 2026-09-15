@@ -39,4 +39,3 @@ uv run python scripts/install.py --codex-home /path/to/codex --agents-home /path
 - [任务描述示例](docs/task-brief.md)：按需表达任务，不是必填模板。
 - [项目说明示例](docs/project-instructions.example.md)：记录事实和硬约束，不复制全局偏好。
 - [试用与回归案例](docs/prompt-evaluation.md)：包括访谈退出、范围控制和连续增量任务，尚未进行模型行为实测。
-- [历史设计资料](docs/archive/README.md)：原文归档，不是当前执行规范。

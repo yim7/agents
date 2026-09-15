@@ -47,7 +47,7 @@ Prompt 和 skill 应提供信息增量：模型无法自行确定的项目事实
 
 `git-commit` 先沿用项目已有规范，再使用英文 Conventional Commits 默认值。`video-summary` 保留具体工具知识，去掉强制读取浏览器登录态的顺序，沿已有授权使用并传递认证参数。
 
-`project-conventions` 及 Python 约定、`domain-modeling` 及格式、`implement` 兼容入口、`ncm-converter` 及脚本不改。八份旧设计参考文件原样移到 `docs/archive/`，不再从运行技能引用，也不随 skills 安装。
+`project-conventions` 及 Python 约定、`domain-modeling` 及格式、`implement` 兼容入口、`ncm-converter` 及脚本不改。八份旧设计参考文件直接删除，需要时通过 Git 历史找回，不在仓库中保留归档副本。
 
 ## 维护与验收
 
