@@ -23,7 +23,9 @@ uv run python scripts/install.py --codex-home /path/to/codex --agents-home /path
 
 ## 使用
 
-普通任务说明目标、上下文、约束和验收即可；已有信息可引用，不必填表或先选择技能。需要逐题访谈时使用 `grill-me`；多步交付使用 `deliver`；有未决结构选择时使用 `design-before-coding`；专项结构审查使用 `design-review`。它们不是固定的顺序流程。
+普通任务说明目标、上下文、约束和验收即可；已有信息可引用，不必填表或先选择技能。需要逐题访谈时使用 `grill-me`；多步交付使用 `deliver`；形成或调整软件方案时使用 `software-design`；检查已有方案或实现的结构风险时使用 `design-review`。它们不是固定的顺序流程。
+
+`software-design` 交付推荐方案、取舍依据和必要边界；`design-review` 交付有证据的问题与检查结论。按主要产物选择，两者可独立使用，不默认互相触发；同时要求审查与修订时，在原授权内完成，不新增确认步骤。
 
 例如：
 

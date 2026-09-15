@@ -18,7 +18,7 @@
 ## 技能
 
 - 技能在当前任务需要其特定知识、流程或产物时使用，不把访谈、设计、拆任务和评审串成每次必经的流程。用户明确选择的方法在约定范围内执行。
-- 多步开发可按需使用 `deliver`；结构选择不明确时使用 `design-before-coding`；需要专项结构审查时使用 `design-review`。
+- 多步开发可按需使用 `deliver`；形成或调整软件方案时使用 `software-design`；检查已有方案或实现的结构风险时使用 `design-review`。
 - 涉及工具链或个人项目默认值时，读取 `project-conventions`；涉及提交信息或 Git 提交时，读取 `git-commit`。
 
 ## 权限与外部影响
