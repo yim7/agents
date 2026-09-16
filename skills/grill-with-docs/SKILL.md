@@ -1,9 +1,11 @@
 ---
 name: grill-with-docs
-description: 在写 Spec 前逐题澄清需求，同时记录领域术语和设计决定；转入 Spec 整理后结束逐题访谈，继续完成文档。
+description: 显式启动充分的需求访谈，并同步已确认的领域术语和必要设计记录；不自动授权重写项目指令或开发。
 disable-model-invocation: true
 ---
 
-使用 `/grilling` 开展当前需求访谈，并使用 `/domain-modeling` 记录术语和设计决定。
-遵循 `/grilling` 的生效范围和退出规则；记录文档不延长访谈阶段。
-用户要求开始撰写或收敛 Spec 时，结束逐题问答，保留已确认决定并连续完成已授权的文档整理和一致性检查。后续必要问题集中提出，不因历史调用重启访谈，也不把退出访谈视为开发授权。
+读取同级 [grilling](../grilling/SKILL.md) 开展访谈；需要记录术语或设计决定时，读取 [project-context](../project-context/SKILL.md)。记录文档不延长或结束访谈阶段，未决事项不能写成已确认。
+
+本入口的记录范围是本次访谈确认的术语和必要决定，不因 project-context 支持项目指令维护就自动改写 `AGENTS.md`。用户另有明确授权时按其范围处理。
+
+用户转入文档整理或其他阶段时，按 grilling 的退出规则继续已授权工作，不自动重新启动访谈。

@@ -1,45 +1,18 @@
 ---
 name: git-commit
-description: 编写、检查、整理或准备 Git 提交信息时使用。要求提交信息用英文，并遵循 Conventional Commits 规范。
+description: 准备、检查或执行 Git 提交时应用项目约定与个人默认提交格式。只要求提交信息时不执行提交；本技能不自动授权推送。
 ---
 
-# Git Commit
+# Git 提交
 
-编写、检查、整理或准备 Git 提交信息时使用这个 skill。
-
-## 规则
-
-- 提交信息使用英文。
-- 遵循 Conventional Commits 规范。
-- 一个提交只描述一件逻辑完整的事。
-- 不要把不相关的改动混进同一个提交。
-- 提交和推送分别遵循用户授权；已有明确授权不重复确认。
-- 写提交信息前先查看相关 diff。
-- 提交前检查暂存内容，不包含密钥、访问令牌、缓存、日志、会话记录或机器相关的临时状态。
+先核对项目的提交规范和相关 diff。项目没有明确约定时，默认使用英文 Conventional Commits：
 
 ```text
 <type>[optional scope][optional !]: <description>
 ```
 
-## 常用类型
+提交信息描述实际变更，一个提交保持逻辑完整，不混入无关改动。按项目约定标识破坏性变化。
 
-常用 `feat`、`fix`、`docs`、`style`、`refactor`、`perf`、`test`、`build`、`ci`、`chore`、`revert`。
+执行提交前核对暂存范围，排除凭据、会话材料（包括 cookies）及与任务无关的本机产物；遵循已生效的安全约定，不把这里的示例视作完整禁项清单。保留用户已有改动，不为整理提交擅自撤销、覆盖或改写历史。
 
-有明确影响范围时可以加 scope：
-
-## 示例
-
-```text
-feat(auth): add password reset flow
-fix(cli): handle empty commit messages
-docs: add Git commit guidelines
-refactor(config): simplify default loading
-chore: update agent instructions
-feat(api)!: require authorization header
-```
-
-破坏性变更可以使用 `!`，必要时补充 `BREAKING CHANGE:` footer。
-
-## 参考
-
-- Conventional Commits 1.0.0: https://www.conventionalcommits.org/en/v1.0.0/
+编写提交信息、创建提交和推送分别遵循已有授权，不相互推定，也不重复确认已经明确的同范围授权。
