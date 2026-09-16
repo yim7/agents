@@ -112,5 +112,57 @@ class InstallContractTests(unittest.TestCase):
         self.assertEqual((self.source / "skills" / NEW / "SKILL.md").read_text(), "new skill\n")
 
 
+    def test_project_context_bundle_and_migration_boundaries(self) -> None:
+        bundle = INSTALLER.parents[1] / "skills" / "project-context"
+        self.assertEqual(
+            {p.relative_to(bundle).as_posix() for p in bundle.rglob("*") if p.is_file()},
+            {"SKILL.md", "references/project-agents.md",
+             "references/domain-context.md", "references/decision-record.md"},
+        )
+        shutil.copytree(bundle, self.source / "skills" / "project-context")
+        self.write(self.source / "docs" / "maintainer.md", "not installed\n")
+        self.write(self.source / "evals" / "case.md", "not a runtime prompt\n")
+        for tracked in (True, False, None):
+            with self.subTest(tracked=tracked):
+                self.codex = self.root / str(tracked) / "codex"
+                self.agents = self.root / str(tracked) / "agents"
+                old_name = "domain-modeling"
+                legacy = self.agents / "skills" / old_name / "SKILL.md"
+                self.write(legacy, "local domain notes\n")
+                self.write(self.agents / "skills" / "unrelated" / "SKILL.md", "keep me\n")
+                if tracked is not None:
+                    self.write(self.agents / MANIFEST, json.dumps(
+                        {"agents": None, "skills": [old_name] if tracked else []}
+                    ) + "\n")
+                result = self.run_install()
+                self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+                installed = self.agents / "skills" / "project-context"
+                for source_file in bundle.rglob("*"):
+                    if source_file.is_file():
+                        self.assertEqual(
+                            (installed / source_file.relative_to(bundle)).read_bytes(),
+                            source_file.read_bytes(),
+                        )
+                if tracked:
+                    self.assertFalse(legacy.parent.exists())
+                    backups = list((self.agents / ".backups").glob(
+                        f"*/skills/{old_name}/SKILL.md"
+                    ))
+                    self.assertEqual(len(backups), 1)
+                    self.assertEqual(backups[0].read_text(), "local domain notes\n")
+                else:
+                    self.assertEqual(legacy.read_text(), "local domain notes\n")
+                self.assertEqual(
+                    json.loads((self.agents / MANIFEST).read_text())["skills"],
+                    ["project-context", NEW],
+                )
+                self.assertEqual((self.agents / "skills" / "unrelated" / "SKILL.md").read_text(), "keep me\n")
+                for target in (self.codex, self.agents):
+                    self.assertFalse((target / "docs").exists())
+                    self.assertFalse((target / "evals").exists())
+                    self.assertFalse((target / "skills" / "docs").exists())
+                    self.assertFalse((target / "skills" / "evals").exists())
+
+
 if __name__ == "__main__":
     unittest.main()
