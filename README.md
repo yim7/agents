@@ -25,9 +25,11 @@ uv run python scripts/install.py --codex-home /path/to/codex --agents-home /path
 
 覆盖或移除前，备份到目标目录的 `.backups/`。过期技能清理仅依据各目标目录的 `.installed-skills.json`；安装脚本不会按名称猜测未登记技能的来源。`skills/` 内的参考文件随对应技能一起复制；`docs/`、`evals/` 和 `tests/` 不参与安装。
 
+安装器只配置上述 Codex 指令位置与共享技能目录，不配置 DSH 的全局指令、preset 或 Claude Code 安装目录。另一宿主是否读取这些指令和技能，应检查其实际配置，不能从安装成功推定。
+
 ### 技能替换与清理
 
-本 PR 将 `design-before-coding` 替换为 `software-design`，将 `domain-modeling` 的领域知识维护与项目指令模板合并到 `project-context`，不提供两个旧名入口，也不另建 `project-instructions` skill。
+2026-09-16 合入的重构（`15f5173`）将 `design-before-coding` 替换为 `software-design`，将 `domain-modeling` 的领域知识维护与项目指令模板合并到 `project-context`。当前不提供两个旧名入口，也不另建 `project-instructions` skill。
 
 若目标目录的 manifest 已登记旧名，同步会备份并删除旧技能、安装新技能。若 manifest 缺失或未登记旧名，旧目录会保留；安装新技能不代表旧技能已经禁用。先核对旧副本的路径、来源和本地修改，再通过对应安装方式清理，不要按同名批量删除。其他项目目录或第三方安装位置也不在本脚本的清理范围。
 
@@ -45,9 +47,17 @@ uv run python scripts/install.py --codex-home /path/to/codex --agents-home /path
 
 > 使用 $deliver，完成文档中已确认的当前交付目标，提供使用入口和验证结果，不部署。
 
-Codex 显式调用入口共有四个：`grill-me`、`grill-with-docs`、`implement`、`to-tickets`，各自的 `agents/openai.yaml` 设置了 `allow_implicit_invocation: false`。本 PR 为两个 grill 入口新增这份 YAML；`implement` 和 `to-tickets` 的配置在基线已存在。调用策略限制自动选择，不是权限隔离。
+四个显式入口为 `grill-me`、`grill-with-docs`、`implement`、`to-tickets`。它们同时维护两类调用声明：
 
-两个 grill 入口保留 `disable-model-invocation: true` frontmatter，供 Claude Code 等识别该字段的宿主使用；Codex 使用上述 YAML。两处声明面向不同宿主，并非同一解析器的重复配置，后续更改显式调用意图时应一起核对。当前安装脚本不配置 Claude Code 的安装目录。
+| 宿主 | 仓内声明 | 用户显式选择 |
+| --- | --- | --- |
+| Codex | `agents/openai.yaml` 中 `policy.allow_implicit_invocation: false` | `$skill-name` |
+| DSH | `SKILL.md` frontmatter 中 `disable-model-invocation: true` | `/skill-name` |
+| Claude Code 等识别该字段的宿主 | 同一 frontmatter 声明 | 按宿主提供的显式入口 |
+
+配置依据见 [设计说明](docs/prompt-design.md#配置依据)。当前验证目标为实际使用的 Codex 与 DSH，宿主版本与模型版本分别记录；上游支持某字段不等于本机某版本已经通过集成测试。
+
+调用策略不是权限隔离。DSH 的模型侧加载工具也检查该字段，不只是隐藏目录；用户显式选择一个入口，不会让模型自动获得加载其他显式入口的能力。旧 `implement` 只保留用户显式调用兼容，不保证外部工作流把它当作内部依赖时仍可加载。更新前保存有效配置，从要保留的入口沿有向依赖检查实际加载和产物；不能仅以没有悬空链接认定兼容，也不批量给全部外部技能加此标记。
 
 ## 验证与维护
 
@@ -62,7 +72,8 @@ python -m unittest discover -s tests -p 'test_*.py' -v
 本库的非运行资料也有明确消费者：
 
 - [Prompt 系统设计](docs/prompt-design.md)：维护本库的人或 Agent 在调整规则时读取背景与边界，不是全局运行指令。
-- [行为回归规格](evals/prompt-behavior.md)：受委托进行评估的人或 Agent 选取案例、运行新旧配置并记录证据；目前没有自动 runner，也没有已通过的模型行为结果。
+- [行为回归规格](evals/prompt-behavior.md)：评估者运行相关场景，分别检查授权内推进与必要暂停；规格不是自动 runner。
+- [实验记录约定](evals/records/README.md)：保存有效配置快照、案例结果、证据与决定，包括失败和“未观察到差异”；目前尚无模型行为实验报告。
 - [项目上下文技能](skills/project-context/SKILL.md)：需要维护目标项目知识时使用，其 `references/` 提供项目指令、领域上下文和决定记录的可裁剪结构。
 
 不再保留独立的任务写法教程或无人消费的项目模板。维护本库时按相关设计说明和回归规格处理；普通业务开发不额外加载它们。
