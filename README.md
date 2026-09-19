@@ -75,7 +75,7 @@ uv run python scripts/install.py --codex-home /path/to/codex --agents-home /path
 python -m unittest discover -s tests -p 'test_*.py' -v
 ```
 
-这些测试验证 manifest 清理范围、预览无写入、符号链接拒绝及技能资源的安装（包括新技能模板和同名副本备份），不验证模型行为。
+通用安装测试验证 manifest 清理范围、预览无写入、符号链接拒绝及项目上下文技能资源的安装，不验证模型行为。
 
 本库的非运行资料也有明确消费者：
 
