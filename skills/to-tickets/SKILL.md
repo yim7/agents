@@ -1,6 +1,7 @@
 ---
 name: to-tickets
 description: 用户显式选择本技能时，整理当前及后续交付目标、验收条件和真实依赖。支持功能开发、迁移和调查；普通开发中的内部计划不必调用本技能。
+disable-model-invocation: true
 ---
 
 # 拆分交付任务
