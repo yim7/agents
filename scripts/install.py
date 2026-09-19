@@ -200,6 +200,10 @@ def main() -> None:
         return
 
     print()
+    notices = REPO_ROOT / "THIRD_PARTY_NOTICES.txt"
+    if skills_dir.is_dir() and notices.is_file():
+        install_file(notices, agents / "yim7-agents-NOTICES.txt", agents,
+                     agents / ".backups" / ts, args.dry_run)
     sync_target(agents_file, None, codex, codex / ".backups" / ts, args.dry_run)
     sync_target(None, skills_dir, agents, agents / ".backups" / ts, args.dry_run)
     remove_misplaced_agents_file(agents, agents / ".backups" / ts, args.dry_run)

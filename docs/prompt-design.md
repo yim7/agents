@@ -79,7 +79,7 @@ Prompt 和 skill 提供模型无法自行确定的项目事实、个人取舍、
 
 ## 选择性移植
 
-`to-spec`、`handoff` 和 `code-review` 改编自 [mattpocock/skills](https://github.com/mattpocock/skills/tree/c55ee46073ed923f86ce59a5eb3b6d895095d1b7)，以该提交固定来源；各技能的 `metadata.upstream` 指向具体原文件，并在目录内保留原 MIT 许可证，保证独立安装时出处与许可仍随行。这不是同步上游整套工作流，更新需审阅本地取舍。
+`to-spec`、`handoff` 和 `code-review` 改编自 [mattpocock/skills](https://github.com/mattpocock/skills/tree/c55ee46073ed923f86ce59a5eb3b6d895095d1b7)，以该提交固定来源；各技能的 `metadata.upstream` 指向具体原文件。版权和原 MIT 许可集中保存在 [THIRD_PARTY_NOTICES.txt](../THIRD_PARTY_NOTICES.txt)，安装器只复制一份到 `<agents-home>/yim7-agents-NOTICES.txt`，不加入运行指令；单独分发技能时须附带该声明。这不是同步上游整套工作流，更新需审阅本地取舍。
 
 `to-spec` 合成已有讨论，产物是当前规格；保留范围、行为和验收要求，删除上游的测试边界固定数量／额外确认、长用户故事要求、setup 依赖和自动 tracker 发布。未决问题保持未决，整理文档不自动授权实现。
 

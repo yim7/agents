@@ -1,3 +1,12 @@
+Third-party notices for yim7/agents
+
+The adapted material in skills/to-spec/, skills/handoff/ and
+skills/code-review/ comes from mattpocock/skills at:
+https://github.com/mattpocock/skills/tree/c55ee46073ed923f86ce59a5eb3b6d895095d1b7
+
+The following notice applies to that material, not to unrelated repository
+content. Include this notice when redistributing the adapted skills.
+
 MIT License
 
 Copyright (c) 2026 Matt Pocock
