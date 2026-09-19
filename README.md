@@ -6,7 +6,7 @@
 
 ## 安装
 
-从包含 `AGENTS.md`、`scripts/install.py`、`THIRD_PARTY_NOTICES.txt` 和全部待同步 `skills/` 的仓库根目录运行。不要求带 `.git/` 才能安装；但不能只复制安装脚本或部分技能，因为脚本把源 `skills/` 当作本仓库的完整安装集合，可能清理其余已登记技能。
+从包含 `AGENTS.md`、`scripts/install.py` 和全部待同步 `skills/` 的仓库根目录运行。不要求带 `.git/` 才能安装；但不能只复制安装脚本或部分技能，因为脚本把源 `skills/` 当作本仓库的完整安装集合，可能清理其余已登记技能。
 
 先预览，再执行同步：
 
@@ -23,7 +23,7 @@ uv run python scripts/install.py
 uv run python scripts/install.py --codex-home /path/to/codex --agents-home /path/to/agents
 ```
 
-覆盖或移除前，备份到目标目录的 `.backups/`。过期技能清理仅依据各目标目录的 `.installed-skills.json`；安装脚本不会按名称猜测未登记技能的来源。`skills/` 内的参考文件随对应技能一起复制；共享许可声明单独复制为 `<agents-home>/yim7-agents-NOTICES.txt`，不放入技能目录或运行指令。`docs/`、`evals/` 和 `tests/` 不参与安装。
+覆盖或移除前，备份到目标目录的 `.backups/`。过期技能清理仅依据各目标目录的 `.installed-skills.json`；安装脚本不会按名称猜测未登记技能的来源。`skills/` 内的参考文件随对应技能一起复制；`docs/`、`evals/` 和 `tests/` 不参与安装。
 
 安装器只配置上述 Codex 指令位置与共享技能目录，不配置 DSH 的全局指令、preset 或 Claude Code 安装目录。另一宿主是否读取这些指令和技能，应检查其实际配置，不能从安装成功推定。
 
@@ -63,7 +63,7 @@ uv run python scripts/install.py --codex-home /path/to/codex --agents-home /path
 
 ## 选择性移植
 
-`to-spec`、`handoff`、`code-review` 改编自 Matt Pocock 的 skills，来源固定在 `c55ee46073ed923f86ce59a5eb3b6d895095d1b7`。各技能 frontmatter 记录上游文件，版权和 MIT 许可集中保留在 [THIRD_PARTY_NOTICES.txt](THIRD_PARTY_NOTICES.txt)，不在各技能目录重复存放。单独复制或分发这些技能时，也应附带该声明。本地取舍见 [设计说明](docs/prompt-design.md#选择性移植)。它们不依赖上游 setup、tracker 配置或其他上游技能，不要求同时安装整包。
+`to-spec`、`handoff`、`code-review` 改编自 Matt Pocock 的 skills，来源固定在 `c55ee46073ed923f86ce59a5eb3b6d895095d1b7`。各技能 frontmatter 记录上游文件；本地取舍见 [设计说明](docs/prompt-design.md#选择性移植)。它们不依赖上游 setup、tracker 配置或其他上游技能，不要求同时安装整包。
 
 三个技能沿用上游名称。同步时，安装器会备份并替换目标目录中的同名副本，即使它未被旧 manifest 登记；先核对来源与本地修改。其他目录、preset 或插件提供的同名版本不会自动清理，安装后仍需核对实际解析来源。上游其他技能的卸载或停用是独立的本机操作，不由本仓库安装器按来源批量处理。
 
@@ -75,7 +75,7 @@ uv run python scripts/install.py --codex-home /path/to/codex --agents-home /path
 python -m unittest discover -s tests -p 'test_*.py' -v
 ```
 
-这些测试验证 manifest 清理范围、预览无写入、符号链接拒绝及技能资源的安装（包括新技能模板、共享许可声明和同名副本备份），不验证模型行为。
+这些测试验证 manifest 清理范围、预览无写入、符号链接拒绝及技能资源的安装（包括新技能模板和同名副本备份），不验证模型行为。
 
 本库的非运行资料也有明确消费者：
 

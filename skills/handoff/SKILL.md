@@ -2,7 +2,6 @@
 name: handoff
 description: 用户显式选择时，为下一会话或另一 Agent 保存当前任务的目标、实际进度、验证证据、未决事项和可访问入口。不生成长期项目规则，不以交接扩大操作授权。
 disable-model-invocation: true
-license: MIT
 metadata:
   upstream: https://github.com/mattpocock/skills/blob/c55ee46073ed923f86ce59a5eb3b6d895095d1b7/skills/productivity/handoff/SKILL.md
 ---

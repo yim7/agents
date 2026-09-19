@@ -2,7 +2,6 @@
 name: to-spec
 description: 用户显式选择时，将已有讨论和项目证据整理为本次工作的规格，明确范围、行为与验收。不重新开展访谈，不自动实现或发布到远程 tracker。
 disable-model-invocation: true
-license: MIT
 metadata:
   upstream: https://github.com/mattpocock/skills/blob/c55ee46073ed923f86ce59a5eb3b6d895095d1b7/skills/engineering/to-spec/SKILL.md
 ---

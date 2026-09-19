@@ -1,7 +1,6 @@
 ---
 name: code-review
 description: 审查 PR、分支或工作区的具体代码变更，核对需求、行为正确性、回归与项目约束，报告有证据的问题。用于用户要求变更审查或已授权的评审任务；只讨论设计方案时不启动代码审查，也不自动修改或批准合并。
-license: MIT
 metadata:
   upstream: https://github.com/mattpocock/skills/blob/c55ee46073ed923f86ce59a5eb3b6d895095d1b7/skills/engineering/code-review/SKILL.md
 ---
