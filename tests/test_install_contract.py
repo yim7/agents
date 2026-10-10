@@ -47,23 +47,10 @@ class InstallContractTests(unittest.TestCase):
         return legacy
 
     def run_install(self, *args: str) -> subprocess.CompletedProcess[str]:
-        # Isolate the fixed Claude location without changing the user's HOME.
-        runner = """
-from pathlib import Path
-import runpy
-import sys
-from unittest.mock import patch
-
-script, user_home = sys.argv[1:3]
-sys.argv = [script, *sys.argv[3:]]
-with patch.object(Path, "home", return_value=Path(user_home)):
-    runpy.run_path(script, run_name="__main__")
-"""
         return subprocess.run(
-            [sys.executable, "-c", runner,
-             str(self.source / "scripts" / "install.py"), str(self.claude.parent),
+            [sys.executable, str(self.source / "scripts" / "install.py"),
              "--codex-home", str(self.codex), "--agents-home", str(self.agents),
-             *args],
+             "--claude-home", str(self.claude), *args],
             cwd=self.source,
             env={**os.environ, "PYTHONIOENCODING": "utf-8"},
             capture_output=True, text=True, encoding="utf-8", timeout=20,

@@ -14,6 +14,7 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_CODEX_HOME = Path("~/.codex").expanduser()
 DEFAULT_AGENTS_HOME = Path("~/.agents").expanduser()
+DEFAULT_CLAUDE_HOME = Path("~/.claude").expanduser()
 MANIFEST_NAME = ".installed-skills.json"
 
 
@@ -175,6 +176,7 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--codex-home", type=Path, default=DEFAULT_CODEX_HOME)
     parser.add_argument("--agents-home", type=Path, default=DEFAULT_AGENTS_HOME)
+    parser.add_argument("--claude-home", type=Path, default=DEFAULT_CLAUDE_HOME)
     parser.add_argument("--dry-run", action="store_true", help="只预览，不修改文件。")
     return parser.parse_args()
 
@@ -183,7 +185,7 @@ def main() -> None:
     args = parse_args()
     codex = args.codex_home.expanduser().resolve()
     agents = args.agents_home.expanduser().resolve()
-    claude = (Path.home() / ".claude").resolve()
+    claude = args.claude_home.expanduser().resolve()
     for target in (agents, claude):
         if (target / "skills").is_symlink():
             raise SystemExit(f"请先将软链接替换为独立目录，再安装: {target / 'skills'}")

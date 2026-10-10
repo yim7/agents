@@ -24,10 +24,10 @@ uv run python scripts/install.py
 
 采用独立目录复制，不使用指向仓库的软链接；目标 `<agents-home>/skills` 或 `~/.claude/skills` 如果是符号链接，脚本会在写入前退出，须先核对并迁移其中内容。
 
-Codex 与共享技能目录保留原有自定义参数；Claude Code 固定安装到 `~/.claude`：
+自定义目录：
 
 ```bash
-uv run python scripts/install.py --codex-home /path/to/codex --agents-home /path/to/agents
+uv run python scripts/install.py --codex-home /path/to/codex --agents-home /path/to/agents --claude-home /path/to/claude
 ```
 
 覆盖或移除前，备份到目标目录的 `.backups/`。过期技能清理仅依据各目标目录的 `.installed-skills.json`；安装脚本不会按名称猜测未登记技能的来源。`skills/` 内的参考文件随对应技能一起复制；`docs/`、`evals/` 和 `tests/` 不参与安装。
