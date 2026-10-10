@@ -14,8 +14,8 @@ import unittest
 
 INSTALLER = Path(__file__).resolve().parents[1] / "scripts" / "install.py"
 MANIFEST = ".installed-skills.json"
-OLD = "design-before-coding"
-NEW = "software-design"
+OLD = "old-skill"
+NEW = "new-skill"
 
 
 class InstallContractTests(unittest.TestCase):
