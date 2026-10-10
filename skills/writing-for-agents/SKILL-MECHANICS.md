@@ -1,22 +1,22 @@
-# Skill mechanics
+# 技能机制
 
-The skill-specific branch of [`writing-for-agents`](SKILL.md): what changes when the document is a skill (frontmatter, the invocation choice, and router skills). Everything else about writing it is the universal reference in `SKILL.md`.
+这是 [`writing-for-agents`](SKILL.md) 中技能专属的分支：当文档是一个技能时，有哪些不同（frontmatter、调用方式的选择和路由技能）。关于如何写它的其他一切，都在 `SKILL.md` 的通用参考中。
 
-## Invocation
+## 调用方式
 
-Two choices, trading the two loads:
+两种选择，在两种负担之间取舍：
 
-- A **model-invoked** skill keeps a `description`, so the agent can fire it autonomously, and other skills can reach it. You can still type its name: model-invocation always _includes_ user reach; a description only ever adds agent discovery, never removes the human's. The description is the skill's top-level context pointer, forced to stay loaded at all times: permanent context load in exchange for discoverability. A model-invoked skill whose content is all reference is also one home for shared reference: another skill can invoke it, so reference needed by several skills lives in one place. Mechanics: omit `disable-model-invocation`, and write a model-facing description carrying the trigger branches (the pointer-writing rules in `SKILL.md` apply in full).
-- A **user-invoked** skill strips the description from the agent's reach: only the human typing its name can invoke it, and no other skill can. Zero context load, but it spends cognitive load: you are the index that must remember it exists. Mechanics: set `disable-model-invocation: true`; the `description` becomes human-facing: a one-line summary, trigger lists stripped.
+- **模型调用（model-invoked）**的技能保留 `description`，因此 agent 可以自主触发它，其他技能也能到达它。你仍然可以输入它的名字：模型调用始终**包含**用户可达；description 只会增加 agent 的发现能力，从不移除人的。description 是技能的顶层上下文指针，被迫始终保持加载：用永久的上下文负担换取可发现性。一个内容全是参考的模型调用技能，也是共享参考的一个归宿：其他技能可以调用它，因此多个技能都需要的参考可以放在一个地方。机制：省略 `disable-model-invocation`，写一个面向模型的 description，带上触发分支（`SKILL.md` 中关于写指针的规则全部适用）。
+- **用户调用（user-invoked）**的技能把 description 从 agent 的可达范围中拿掉：只有人输入它的名字才能调用它，其他技能都不能。上下文负担为零，但它消耗认知负担：你就是那个必须记住它存在的索引。机制：设置 `disable-model-invocation: true`；`description` 变成面向人的：一行摘要，去掉触发词列表。
 
-Pick model-invocation only when the agent must reach the skill on its own, or another skill must. If it only ever fires by hand, make it user-invoked and pay no context load.
+只有当 agent 必须自己到达这个技能，或者另一个技能必须到达它时，才选模型调用。如果它只会被手动触发，就设为用户调用，不付上下文负担。
 
-Shared reference that two user-invoked skills both need can live in neither: with no descriptions, neither can fire the other. Push it to a plain file outside the skill system: external reference any skill can point at.
+两个用户调用技能都需要的共享参考，不能放在其中任何一个里：没有 description，它们谁也触发不了谁。把它推到技能体系之外的一个普通文件里：一份任何技能都能指向的外部参考。
 
-## Splitting by invocation
+## 按调用方式拆分
 
-The invocation cut of splitting (the sequence cut lives in `SKILL.md`): split off a model-invoked skill when you have a distinct leading word that should trigger it on its own (a trigger word you actually use in your prompts), or another skill must reach it. You pay context load for the new always-loaded description, so that independent reach has to be worth it.
+拆分中按调用方式的那一刀（按顺序的那一刀在 `SKILL.md` 中）：当你有一个应当独立触发它的不同引导词（一个你在提示中真正会用的触发词），或者另一个技能必须到达它时，拆出一个模型调用技能。你要为新的、始终加载的 description 付上下文负担，所以这种独立可达必须值得。
 
-## Router skills
+## 路由技能（router skills）
 
-When user-invoked skills multiply past what you can remember, that piled-up cognitive load is cured by a **router skill**: one user-invoked skill that names the others and when to reach for each, so the human has one skill to remember instead of many. It can only hint, never fire them: user-invoked skills have no description, so nothing but the human can reach them.
+当用户调用技能多到你记不住时，堆积起来的认知负担可以用一个**路由技能**来治：一个用户调用技能，列出其他技能以及何时该用哪一个，这样人只需要记住一个技能，而不是很多个。它只能提示，从不能触发它们：用户调用技能没有 description，所以除了人，没有什么能到达它们。
