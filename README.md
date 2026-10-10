@@ -37,6 +37,7 @@ uv run python scripts/install.py --codex-home /path/to/codex --agents-home /path
 | `to-spec` | 手动 | 把对话整理成 spec，存到 `.scratch/<feature>/spec.md` |
 | `to-tickets` | 手动 | 拆成带阻塞依赖的 tracer bullet 任务，存到 `.scratch/<feature>/issues/` |
 | `handoff` | 手动 | 把对话压缩成交接文档 |
+| `improve-codebase-architecture` | 手动 | 架构体检：扫描热点、出 HTML 报告，再拷问选中的改进项 |
 | `git-commit` | 自动 | 提交格式 |
 | `project-conventions` | 自动 | 工具链与前端默认值 |
 | `writing-for-agents` | 自动 | 编写指令和技能的规范 |
@@ -45,7 +46,7 @@ uv run python scripts/install.py --codex-home /path/to/codex --agents-home /path
 
 “手动”技能只在用户输入 `/name`（Claude Code）或 `$name`（Codex）时加载，同时声明两处：`SKILL.md` frontmatter 中的 `disable-model-invocation: true`，以及 `agents/openai.yaml` 中的 `policy.allow_implicit_invocation: false`。只在用户想要该产物时才用的技能设为手动，省去常驻上下文的 description。
 
-`grilling`、`grill-me`、`grill-with-docs`、`domain-modeling`、`to-spec`、`to-tickets`、`handoff`、`writing-for-agents` 从 [mattpocock/skills](https://github.com/mattpocock/skills/tree/49dd158d1076134a641b33efb035946536778336) 忠实翻译成中文，各技能 frontmatter 的 `metadata.upstream` 记录对应原文件。唯一的适配是 `to-spec` 与 `to-tickets` 不依赖上游的 `setup-matt-pocock-skills`，固定使用上游的本地 Markdown 约定（`.scratch/`）作为 issue tracker。个人偏好等行为用例证明需要时再加。
+`grilling`、`grill-me`、`grill-with-docs`、`domain-modeling`、`to-spec`、`to-tickets`、`handoff`、`improve-codebase-architecture`、`writing-for-agents` 从 [mattpocock/skills](https://github.com/mattpocock/skills/tree/49dd158d1076134a641b33efb035946536778336) 忠实翻译成中文，各技能 frontmatter 的 `metadata.upstream` 记录对应原文件。适配只有两处：`to-spec` 与 `to-tickets` 不依赖上游的 `setup-matt-pocock-skills`，固定使用上游的本地 Markdown 约定（`.scratch/`）作为 issue tracker；上游的 `codebase-design` 只有 `improve-codebase-architecture` 用到，作为它的参考文件放入同一目录，不单独安装成自动技能。个人偏好等行为用例证明需要时再加。
 
 ## 验证
 
