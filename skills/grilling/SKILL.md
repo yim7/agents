@@ -2,7 +2,7 @@
 name: grilling
 description: 毫不留情地拷问（grill）用户的计划、决定或想法。用于用户想对自己的思路做压力测试，或使用任何“grill”类触发说法时。
 metadata:
-  upstream: https://github.com/mattpocock/skills/blob/c55ee46073ed923f86ce59a5eb3b6d895095d1b7/skills/productivity/grilling/SKILL.md
+  upstream: https://github.com/mattpocock/skills/blob/49dd158d1076134a641b33efb035946536778336/skills/productivity/grilling/SKILL.md
 ---
 
 毫不留情地访谈用户，直到达成共同理解。把它整理成一棵**设计树**：每个决策都分叉出挂在它下面的决策。
@@ -22,6 +22,8 @@ metadata:
 
 ➡️ <你的推荐答案>
 ```
+
+措辞要让用户回答“是”就等于接受你的推荐答案。
 
 用户每轮的回答都会重塑这棵树：已确定的决策把 frontier 向外推，解锁依赖它们的问题。重新计算 frontier，再问下一轮。如果一个问题的答案依赖本轮另一个仍未回答的问题，它属于**之后**的轮次，而不是这一轮。
 

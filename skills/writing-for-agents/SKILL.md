@@ -2,7 +2,7 @@
 name: writing-for-agents
 description: 编写给 agent 读的文档。用于创建或修改技能，或修改 AGENTS.md、CLAUDE.md 时。
 metadata:
-  upstream: https://github.com/mattpocock/skills/blob/c55ee46073ed923f86ce59a5eb3b6d895095d1b7/skills/productivity/writing-for-agents/SKILL.md
+  upstream: https://github.com/mattpocock/skills/blob/49dd158d1076134a641b33efb035946536778336/skills/productivity/writing-for-agents/SKILL.md
 ---
 
 这是编写任何给 agent 读的文档时的参考：技能、`AGENTS.md` / `CLAUDE.md`、经由指针到达的文档。包装形式不同，写法相同：同样的杠杆让每一种都变得可预测，因为 agent 每次运行走的是同一套**过程**，而不是产出同样的结果。

@@ -4,10 +4,10 @@ description: 把当前对话压缩成一份交接文档，供另一个 agent 接
 argument-hint: "下一会话要做什么？"
 disable-model-invocation: true
 metadata:
-  upstream: https://github.com/mattpocock/skills/blob/c55ee46073ed923f86ce59a5eb3b6d895095d1b7/skills/productivity/handoff/SKILL.md
+  upstream: https://github.com/mattpocock/skills/blob/49dd158d1076134a641b33efb035946536778336/skills/productivity/handoff/SKILL.md
 ---
 
-写一份交接文档，总结当前对话，让一个全新的 agent 能继续这项工作。保存到用户操作系统的临时目录，而不是当前工作区。
+写一份交接文档，总结当前对话，让一个全新的 agent 能继续这项工作。保存到用户操作系统的临时目录（`$TMPDIR`，没有时用 `/tmp`；Windows 上用 `%TEMP%`），而不是当前工作区。
 
 在文档中加入“建议技能”一节，写明下一个 agent 应该调用 Skill 工具加载哪些技能。
 

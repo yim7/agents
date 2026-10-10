@@ -3,7 +3,7 @@ name: to-spec
 description: 把当前对话整理成一份 spec 并保存到本地：不做访谈，只综合已经讨论过的内容。
 disable-model-invocation: true
 metadata:
-  upstream: https://github.com/mattpocock/skills/blob/c55ee46073ed923f86ce59a5eb3b6d895095d1b7/skills/engineering/to-spec/SKILL.md
+  upstream: https://github.com/mattpocock/skills/blob/49dd158d1076134a641b33efb035946536778336/skills/engineering/to-spec/SKILL.md
 ---
 
 本技能基于当前对话上下文和对代码库的理解产出一份 spec。**不要**访谈用户；只综合你已经知道的内容。

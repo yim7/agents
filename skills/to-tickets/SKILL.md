@@ -3,7 +3,7 @@ name: to-tickets
 description: 把计划、spec 或当前对话拆成一组 tracer bullet 任务，每个任务声明它的阻塞依赖，以本地 Markdown 每个任务一个文件保存。
 disable-model-invocation: true
 metadata:
-  upstream: https://github.com/mattpocock/skills/blob/c55ee46073ed923f86ce59a5eb3b6d895095d1b7/skills/engineering/to-tickets/SKILL.md
+  upstream: https://github.com/mattpocock/skills/blob/49dd158d1076134a641b33efb035946536778336/skills/engineering/to-tickets/SKILL.md
 ---
 
 # 拆分任务
