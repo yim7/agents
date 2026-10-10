@@ -15,9 +15,16 @@ uv run python scripts/install.py --dry-run
 uv run python scripts/install.py
 ```
 
-默认将 `AGENTS.md` 复制到 `~/.codex/AGENTS.md`，将 `skills/` 复制到 `~/.agents/skills/`。采用独立目录复制，不使用指向仓库的软链接；目标 `<agents-home>/skills` 如果是符号链接，脚本会退出，须先核对并迁移其中内容。
+默认同时配置 Codex 和 Claude Code：
 
-自定义目录：
+| 仓库来源 | 安装位置 |
+| --- | --- |
+| `AGENTS.md` | `~/.codex/AGENTS.md`、`~/.claude/CLAUDE.md` |
+| `skills/` | `~/.agents/skills/`、`~/.claude/skills/` |
+
+采用独立目录复制，不使用指向仓库的软链接；目标 `<agents-home>/skills` 或 `~/.claude/skills` 如果是符号链接，脚本会在写入前退出，须先核对并迁移其中内容。
+
+Codex 与共享技能目录保留原有自定义参数；Claude Code 固定安装到 `~/.claude`：
 
 ```bash
 uv run python scripts/install.py --codex-home /path/to/codex --agents-home /path/to/agents
@@ -25,7 +32,7 @@ uv run python scripts/install.py --codex-home /path/to/codex --agents-home /path
 
 覆盖或移除前，备份到目标目录的 `.backups/`。过期技能清理仅依据各目标目录的 `.installed-skills.json`；安装脚本不会按名称猜测未登记技能的来源。`skills/` 内的参考文件随对应技能一起复制；`docs/`、`evals/` 和 `tests/` 不参与安装。
 
-安装器只配置上述 Codex 指令位置与共享技能目录，不配置 DSH 的全局指令、preset 或 Claude Code 安装目录。另一宿主是否读取这些指令和技能，应检查其实际配置，不能从安装成功推定。
+Claude Code 使用官方约定的[个人指令文件](https://code.claude.com/docs/en/memory)和[个人技能目录](https://code.claude.com/docs/en/skills)，技能通过 `/skill-name` 显式调用。自定义安装目录只改变文件复制位置，使用时须确保宿主读取该位置。安装器不配置 DSH 的全局指令或 preset；文件安装成功不等于宿主加载及模型行为已经通过验证。
 
 ### 技能替换与清理
 
@@ -55,9 +62,9 @@ uv run python scripts/install.py --codex-home /path/to/codex --agents-home /path
 | --- | --- | --- |
 | Codex | `agents/openai.yaml` 中 `policy.allow_implicit_invocation: false` | `$skill-name` |
 | DSH | `SKILL.md` frontmatter 中 `disable-model-invocation: true` | `/skill-name` |
-| Claude Code 等识别该字段的宿主 | 同一 frontmatter 声明 | 按宿主提供的显式入口 |
+| Claude Code | 同一 frontmatter 声明 | `/skill-name` |
 
-配置依据见 [设计说明](docs/prompt-design.md#配置依据)。当前验证目标为实际使用的 Codex 与 DSH，宿主版本与模型版本分别记录；上游支持某字段不等于本机某版本已经通过集成测试。
+配置依据见 [设计说明](docs/prompt-design.md#配置依据)。当前支持 Codex、DSH 与 Claude Code 的相应调用声明；Claude Code 安装路径已纳入安装契约测试，宿主加载和模型行为仍需实际验证。宿主版本与模型版本分别记录；上游支持某字段不等于本机某版本已经通过集成测试。
 
 调用策略不是权限隔离。DSH 的模型侧加载工具也检查该字段，不只是隐藏目录；用户显式选择一个入口，不会让模型自动获得加载其他显式入口的能力。旧 `implement` 只保留用户显式调用兼容，不保证外部工作流把它当作内部依赖时仍可加载。更新前保存有效配置，从要保留的入口沿有向依赖检查实际加载和产物；不能仅以没有悬空链接认定兼容，也不批量给全部外部技能加此标记。
 
@@ -75,7 +82,7 @@ uv run python scripts/install.py --codex-home /path/to/codex --agents-home /path
 python -m unittest discover -s tests -p 'test_*.py' -v
 ```
 
-通用安装测试验证 manifest 清理范围、预览无写入、符号链接拒绝及项目上下文技能资源的安装，不验证模型行为。
+通用安装测试验证 Codex 与 Claude Code 的指令位置、技能副本、覆盖备份、manifest 清理范围、预览无写入、符号链接拒绝及项目上下文技能资源的安装，不验证模型行为。
 
 本库的非运行资料也有明确消费者：
 

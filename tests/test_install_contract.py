@@ -26,6 +26,7 @@ class InstallContractTests(unittest.TestCase):
         self.source = self.root / "source"
         self.codex = self.root / "codex"
         self.agents = self.root / "agents"
+        self.claude = self.root / "home" / ".claude"
         (self.source / "scripts").mkdir(parents=True)
         shutil.copy2(INSTALLER, self.source / "scripts" / "install.py")
         self.write(self.source / "AGENTS.md", "# Test configuration\n")
@@ -46,8 +47,21 @@ class InstallContractTests(unittest.TestCase):
         return legacy
 
     def run_install(self, *args: str) -> subprocess.CompletedProcess[str]:
+        # Isolate the fixed Claude location without changing the user's HOME.
+        runner = """
+from pathlib import Path
+import runpy
+import sys
+from unittest.mock import patch
+
+script, user_home = sys.argv[1:3]
+sys.argv = [script, *sys.argv[3:]]
+with patch.object(Path, "home", return_value=Path(user_home)):
+    runpy.run_path(script, run_name="__main__")
+"""
         return subprocess.run(
-            [sys.executable, str(self.source / "scripts" / "install.py"),
+            [sys.executable, "-c", runner,
+             str(self.source / "scripts" / "install.py"), str(self.claude.parent),
              "--codex-home", str(self.codex), "--agents-home", str(self.agents),
              *args],
             cwd=self.source,
@@ -93,7 +107,83 @@ class InstallContractTests(unittest.TestCase):
                  for p in self.root.rglob("*") if p.is_file()}
         self.assertEqual(before, after)
         self.assertFalse(self.codex.exists())
+        self.assertFalse(self.claude.exists())
         self.assertFalse((self.agents / ".backups").exists())
+
+    def test_claude_installs_independent_copies_and_is_idempotent(self) -> None:
+        self.write(self.source / "skills" / NEW / "references" / "guide.md", "reference\n")
+        result = self.run_install()
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        for dest in (self.codex / "AGENTS.md", self.claude / "CLAUDE.md"):
+            self.assertEqual(dest.read_bytes(), (self.source / "AGENTS.md").read_bytes())
+            self.assertFalse(dest.is_symlink())
+        self.assertFalse((self.claude / "AGENTS.md").exists())
+        self.assertFalse((self.codex / "skills").exists())
+        for target in (self.agents, self.claude):
+            installed = target / "skills" / NEW
+            self.assertFalse((target / "skills").is_symlink())
+            self.assertFalse(installed.is_symlink())
+            self.assertEqual((installed / "references" / "guide.md").read_text(), "reference\n")
+        self.assertEqual(json.loads((self.claude / MANIFEST).read_text()),
+                         {"agents": "CLAUDE.md", "skills": [NEW]})
+        before = {p.relative_to(self.root): (p.read_bytes(), p.stat().st_mtime_ns)
+                  for p in self.root.rglob("*") if p.is_file()}
+        result = self.run_install()
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        after = {p.relative_to(self.root): (p.read_bytes(), p.stat().st_mtime_ns)
+                 for p in self.root.rglob("*") if p.is_file()}
+        self.assertEqual(before, after)
+        self.write(self.claude / "skills" / NEW / "SKILL.md", "local edit\n")
+        self.assertEqual((self.source / "skills" / NEW / "SKILL.md").read_text(), "new skill\n")
+        self.assertEqual((self.agents / "skills" / NEW / "SKILL.md").read_text(), "new skill\n")
+
+    def test_claude_backup_and_cleanup_respect_its_own_manifest(self) -> None:
+        self.write(self.claude / "CLAUDE.md", "local instructions\n")
+        self.write(self.claude / "skills" / NEW / "SKILL.md", "local skill\n")
+        self.write(self.claude / "skills" / OLD / "SKILL.md", "old skill\n")
+        self.write(self.claude / "skills" / "unrelated" / "SKILL.md", "keep me\n")
+        self.write(self.claude / MANIFEST, json.dumps(
+            {"agents": "CLAUDE.md", "skills": [OLD]}
+        ))
+        self.seed_legacy(tracked=False)
+        before = {p.relative_to(self.root): p.read_bytes()
+                  for p in self.root.rglob("*") if p.is_file()}
+        preview = self.run_install("--dry-run")
+        self.assertEqual(preview.returncode, 0, preview.stdout + preview.stderr)
+        self.assertEqual(before, {p.relative_to(self.root): p.read_bytes()
+                                for p in self.root.rglob("*") if p.is_file()})
+        result = self.run_install()
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertFalse((self.claude / "skills" / OLD).exists())
+        self.assertTrue((self.agents / "skills" / OLD / "SKILL.md").is_file())
+        self.assertEqual((self.claude / "skills" / "unrelated" / "SKILL.md").read_text(), "keep me\n")
+        self.assertEqual((self.claude / "skills" / NEW / "SKILL.md").read_text(), "new skill\n")
+        self.assertEqual((self.claude / "CLAUDE.md").read_text(), "# Test configuration\n")
+        for relative, expected in (("CLAUDE.md", "local instructions\n"),
+                                   (f"skills/{NEW}/SKILL.md", "local skill\n"),
+                                   (f"skills/{OLD}/SKILL.md", "old skill\n")):
+            backups = list((self.claude / ".backups").glob(f"*/{relative}"))
+            self.assertEqual(len(backups), 1)
+            self.assertEqual(backups[0].read_text(), expected)
+        self.assertEqual(json.loads((self.claude / MANIFEST).read_text()),
+                         {"agents": "CLAUDE.md", "skills": [NEW]})
+
+    def test_claude_symlinked_skills_root_is_rejected_before_any_target_write(self) -> None:
+        self.claude.mkdir(parents=True)
+        link = self.claude / "skills"
+        try:
+            link.symlink_to(self.source / "skills", target_is_directory=True)
+        except (OSError, NotImplementedError) as exc:
+            self.skipTest(f"Symlinks are unavailable: {exc}")
+        result = self.run_install()
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn(str(link), result.stdout + result.stderr)
+        self.assertTrue(link.is_symlink())
+        self.assertFalse(self.codex.exists())
+        self.assertFalse(self.agents.exists())
+        self.assertFalse((self.claude / "CLAUDE.md").exists())
+        self.assertFalse((self.claude / MANIFEST).exists())
+        self.assertFalse((self.claude / ".backups").exists())
 
     def test_symlinked_skills_root_is_rejected_without_writes(self) -> None:
         self.agents.mkdir()
@@ -107,6 +197,7 @@ class InstallContractTests(unittest.TestCase):
         self.assertIn("软链接", result.stdout + result.stderr)
         self.assertTrue(link.is_symlink())
         self.assertFalse(self.codex.exists())
+        self.assertFalse(self.claude.exists())
         self.assertFalse((self.agents / MANIFEST).exists())
         self.assertFalse((self.agents / ".backups").exists())
         self.assertEqual((self.source / "skills" / NEW / "SKILL.md").read_text(), "new skill\n")
@@ -126,6 +217,7 @@ class InstallContractTests(unittest.TestCase):
             with self.subTest(tracked=tracked):
                 self.codex = self.root / str(tracked) / "codex"
                 self.agents = self.root / str(tracked) / "agents"
+                self.claude = self.root / str(tracked) / "home" / ".claude"
                 old_name = "domain-modeling"
                 legacy = self.agents / "skills" / old_name / "SKILL.md"
                 self.write(legacy, "local domain notes\n")
@@ -157,7 +249,7 @@ class InstallContractTests(unittest.TestCase):
                     ["project-context", NEW],
                 )
                 self.assertEqual((self.agents / "skills" / "unrelated" / "SKILL.md").read_text(), "keep me\n")
-                for target in (self.codex, self.agents):
+                for target in (self.codex, self.agents, self.claude):
                     self.assertFalse((target / "docs").exists())
                     self.assertFalse((target / "evals").exists())
                     self.assertFalse((target / "skills" / "docs").exists())
