@@ -1,7 +1,9 @@
 ---
 name: grill-me
-description: 显式启动逐题需求访谈的兼容入口；转入文档整理或其他阶段后，不延续访谈模式。
+description: 一场毫不留情的访谈，用来打磨计划或设计。
 disable-model-invocation: true
+metadata:
+  upstream: https://github.com/mattpocock/skills/blob/49dd158d1076134a641b33efb035946536778336/skills/productivity/grill-me/SKILL.md
 ---
 
-读取同级 [grilling](../grilling/SKILL.md)，在本次访谈中遵循其生效范围和退出规则。本入口不增加其他阶段或授权。
+调用 Skill 工具，加载 "grilling"。

@@ -14,6 +14,7 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_CODEX_HOME = Path("~/.codex").expanduser()
 DEFAULT_AGENTS_HOME = Path("~/.agents").expanduser()
+DEFAULT_CLAUDE_HOME = Path("~/.claude").expanduser()
 MANIFEST_NAME = ".installed-skills.json"
 
 
@@ -101,6 +102,8 @@ def sync_target(
     target: Path,
     backup_root: Path,
     dry_run: bool,
+    *,
+    agents_dest_name: str = "AGENTS.md",
 ) -> None:
     """Sync one target directory: install/update from repo, remove stale tracked items."""
     manifest_path = target / MANIFEST_NAME
@@ -109,11 +112,11 @@ def sync_target(
 
     # Sync agents file
     if agents_source and agents_source.exists():
-        agents_dest = target / "AGENTS.md"
+        agents_dest = target / agents_dest_name
         if install_file(agents_source, agents_dest, target, backup_root, dry_run):
             changed = True
         if not dry_run:
-            manifest["agents"] = "AGENTS.md"
+            manifest["agents"] = agents_dest_name
 
     # Sync skills
     repo_skills: list[str] = []
@@ -173,6 +176,7 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--codex-home", type=Path, default=DEFAULT_CODEX_HOME)
     parser.add_argument("--agents-home", type=Path, default=DEFAULT_AGENTS_HOME)
+    parser.add_argument("--claude-home", type=Path, default=DEFAULT_CLAUDE_HOME)
     parser.add_argument("--dry-run", action="store_true", help="只预览，不修改文件。")
     return parser.parse_args()
 
@@ -181,13 +185,16 @@ def main() -> None:
     args = parse_args()
     codex = args.codex_home.expanduser().resolve()
     agents = args.agents_home.expanduser().resolve()
-    if (agents / "skills").is_symlink():
-        raise SystemExit(f"请先将软链接替换为独立目录，再安装: {agents / 'skills'}")
+    claude = args.claude_home.expanduser().resolve()
+    for target in (agents, claude):
+        if (target / "skills").is_symlink():
+            raise SystemExit(f"请先将软链接替换为独立目录，再安装: {target / 'skills'}")
     ts = datetime.now().strftime("%Y%m%d-%H%M%S")
 
     print(f"仓库目录: {REPO_ROOT}")
     print(f"Codex: {codex}")
     print(f"Agents: {agents}")
+    print(f"Claude: {claude}")
 
     skills_dir = REPO_ROOT / "skills"
     agents_file = REPO_ROOT / "AGENTS.md"
@@ -202,6 +209,10 @@ def main() -> None:
     print()
     sync_target(agents_file, None, codex, codex / ".backups" / ts, args.dry_run)
     sync_target(None, skills_dir, agents, agents / ".backups" / ts, args.dry_run)
+    sync_target(
+        agents_file, skills_dir, claude, claude / ".backups" / ts,
+        args.dry_run, agents_dest_name="CLAUDE.md",
+    )
     remove_misplaced_agents_file(agents, agents / ".backups" / ts, args.dry_run)
 
 
