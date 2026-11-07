@@ -1,6 +1,6 @@
 # HTML 报告格式
 
-架构审查渲染为操作系统临时目录中的一个自包含 HTML 文件。Tailwind 和 Mermaid 都从 CDN 引入。Mermaid 能可靠地处理图状的图形；手写的 div 和内联 SVG 处理更有编辑感的图形（体量图、剖面图）。两者混用：不要什么都靠 Mermaid，否则看起来会很千篇一律。
+报告是一个自包含的 HTML 文件，只从 CDN 引入 Tailwind（排版）和 Mermaid（画图）两个脚本，其余都是静态内容。
 
 ## 骨架
 
@@ -9,18 +9,16 @@
 <html lang="zh-CN">
   <head>
     <meta charset="utf-8" />
-    <title>{{仓库名}} 架构审查</title>
+    <title>{{仓库名}} 架构体检</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script type="module">
       import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";
       mermaid.initialize({ startOnLoad: true, theme: "neutral", securityLevel: "loose" });
     </script>
     <style>
-      /* 一小层自定义样式，处理 Tailwind 不方便覆盖的东西：
-         虚线接缝、手绘感的箭头等。 */
-      .seam { stroke-dasharray: 4 4; }
-      .leak { stroke: #dc2626; }
-      .deep { background: linear-gradient(135deg, #0f172a, #1e293b); }
+      .seam { stroke-dasharray: 4 4; }   /* 接缝画虚线 */
+      .leak { stroke: #dc2626; }         /* 跨模块泄漏画红线 */
+      .diagram { max-height: 360px; overflow: auto; }
     </style>
   </head>
   <body class="bg-stone-50 text-slate-900 font-sans">
@@ -35,71 +33,56 @@
 
 ## 页头
 
-仓库名、日期和一个紧凑的图例：实线框 = 模块，虚线 = 接缝，红色箭头 = 泄漏，粗深色框 = 深模块。没有介绍段落。直接进入候选项。
+仓库名、日期、提交号，加一行图例：实线框是模块，虚线是接缝，红色箭头是泄漏，粗深色框是深模块。不写介绍段落。
 
-## 候选项卡片
+## 候选卡片
 
-图形承担主要分量。文字稀疏、平实，不加修饰地使用术语表（来自 [CODEBASE-DESIGN.md](CODEBASE-DESIGN.md)）中的术语。
+每个候选一个 `<article>`，内容按这个顺序：
 
-每个候选项是一个 `<article>`：
+- **标题**：一句话点明改什么，例如“汇率对规则收进一个模块”。
+- **标签**：推荐程度（强烈用绿色、值得探索用琥珀色、存疑用灰色）和依赖类别。
+- **涉及文件**：等宽字体列表。
+- **前后对比图**：左右两栏，左边现状，右边改后。这是卡片的主体。
+- **问题**：一两句，写具体现象和证据，例如“23 处 `isRatio` 分支散在 10 个文件”。
+- **方案**：一两句，写改什么。
+- **好处**：短句列表，写可核实的变化，例如“规则只在一处”“删掉 7 个转手函数”“新增的测试不用起服务”。“更易维护”“更整洁”这类说不出具体变化的不写。
+- **与已定决定冲突**（如有）：琥珀色底的一行，写明冲突的是哪条决定、为什么值得重提。
 
-- **标题**：简短，点明这次加深（例如“合并订单接收流水线”）。
-- **徽章行**：推荐强度（`Strong` = 祖母绿，`Worth exploring` = 琥珀色，`Speculative` = 石板灰），加上一个依赖分类标签（`in-process`、`local-substitutable`、`ports & adapters`、`mock`）。
-- **文件**：等宽列表，`font-mono text-sm`。
-- **前后对比图**：核心部分。两栏左右并排。见下面的图形模式。
-- **问题**：一句话。哪里疼。
-- **方案**：一句话。改什么。
-- **收益**：要点列表，每条不超过 6 个词，用术语表的词说明收获：“局部性：bug 集中在一个模块”“杠杆：一个接口，N 个调用点”“删掉 4 个浅包装”。“更易维护”“代码更整洁”不在术语表里，不占位置。
-- **决定冲突提示框**（如适用）：琥珀色底框里的一行字，写明冲突的是项目里哪条决定。
+图看不懂就重画图，不靠加一段解释。
 
-不要写解释性的段落。如果一张图需要一段话才能看懂，就重画这张图。
+## 选哪种图
 
-## 图形模式
+按要表达的内容选：
 
-按问题的形状选模式：关系是图状的用 Mermaid，体量和剖面用手画。不要为了换花样而换模式。
+- **调用和依赖关系**（谁调用谁、哪里绕了几圈）：Mermaid `flowchart`，泄漏的边用 `classDef` 染红。调用次数的前后变化用时序图。
+- **一次调用要穿过几层**：横向条带叠起来，左边是很多薄层，右边是合并后的一层。
+- **接口和实现一样大**：每个模块画两个矩形，一个代表接口、一个代表实现。改前两个差不多高，改后接口矮、实现高。
+- **一棵调用树被收进一个模块**：左边嵌套方框，右边一个方框，原来的调用在框内淡化显示。
 
-### Mermaid 图（表达依赖／调用流的主力）
-
-当要表达的是“X 调用 Y 调用 Z，看看这一团乱”时，用 Mermaid 的 `flowchart` 或 `graph`。把它包在一张 Tailwind 样式的卡片里，让它不显得突兀。用 classDef 把泄漏的边染成红色，把深模块染成深色。时序图很适合表达“之前：6 次往返；之后：1 次”。
+后三种用普通的 `div` 和内联 SVG 手画。
 
 ```html
-<div class="rounded-lg border border-slate-200 bg-white p-4">
+<div class="diagram rounded-lg border border-slate-200 bg-white p-4">
   <pre class="mermaid">
     flowchart LR
       A[OrderHandler] --> B[OrderValidator]
       B --> C[OrderRepo]
-      C -.leak.-> D[PricingClient]
+      C -.泄漏.-> D[PricingClient]
       classDef leak stroke:#dc2626,stroke-width:2px;
       class C,D leak
   </pre>
 </div>
 ```
 
-### 手绘方框和箭头（当 Mermaid 的布局跟你作对时）
+## 样式
 
-模块是带边框和标签的 `<div>`。箭头是绝对定位在相对容器上的内联 SVG `<line>` 或 `<path>`。当你希望“之后”的图看起来像一个粗边框的深模块、内部细节变灰时，用这种方式，因为 Mermaid 渲染不出那种分量感。
+- 留白充足，一个强调色（绿或靛蓝），红色只用于泄漏，琥珀色只用于警告。
+- 前后对比两栏并排；图高控制在 360px 左右，Mermaid 遇到中文或节点多时高度不可控，用 `.diagram` 的 `max-height` 加滚动兜底。
 
-### 剖面图（适合层层叠叠的浅）
+## 最后一节：首要推荐
 
-堆叠水平条带（`h-12 border-l-4`），展示一次调用要穿过的层。之前：6 个薄层，每层什么都不做。之后：1 个厚条带，标注合并后的职责。
+一张大一点的卡片：候选名称、一句理由、跳到对应卡片的链接。
 
-### 体量图（适合“接口和实现一样宽”）
+## 交付前检查
 
-每个模块两个矩形：一个代表接口表面积，一个代表实现。之前：接口矩形几乎和实现矩形一样高（浅）。之后：接口矩形很矮，实现矩形很高（深）。
-
-### 调用图折叠
-
-之前：一棵函数调用树，渲染成嵌套的方框。之后：同一棵树折叠成一个方框，原来的调用变成内部调用，在框内淡化显示。
-
-## 样式指导
-
-- 偏编辑风格，而不是企业仪表盘风格。留白要大方。标题可以用衬线体（`font-serif` 和 stone/slate 搭配效果很好）。
-- 节制用色：一个强调色（祖母绿或靛蓝），加上红色表示泄漏、琥珀色表示警告。
-- 图形高度约 320px，让前后对比能左右并排、无需滚动；Mermaid 遇到中文和多节点时高度不可控，用容器的 `max-height` 加滚动兜底。
-- 写完后在浏览器里真打开一次：Tailwind 生效、每个 Mermaid 块都渲染成了 SVG、控制台没有报错。Mermaid 语法错误只在渲染时暴露。
-- 图形中的模块标签用 `text-xs uppercase tracking-wider`，让它们读起来像示意图，而不是界面。
-- 只有 Tailwind CDN 和 Mermaid ESM 导入这两个脚本。报告其余部分都是静态的：没有应用代码，除了 Mermaid 自身的渲染之外没有交互。
-
-## 首要推荐一节
-
-一张更大的卡片。候选项名称、一句理由、指向它卡片的锚点链接。就这些。
+在浏览器里打开一次：Tailwind 样式生效，每个 Mermaid 块都变成了图（语法错误只在渲染时暴露），控制台没有报错。
