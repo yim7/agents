@@ -27,7 +27,7 @@
 - 代理 3：“为最常见的调用方优化：让默认情况变得极其简单。”
 - 代理 4（如适用）：“围绕 ports & adapters 设计跨接缝的依赖。”
 
-在简报中同时包含 [CODEBASE-DESIGN.md](CODEBASE-DESIGN.md) 的词汇和 GLOSSARY.md 的词汇，让每个子代理的命名与架构语言和项目领域语言保持一致。
+在简报中同时包含 [CODEBASE-DESIGN.md](CODEBASE-DESIGN.md) 的词汇和项目自己的领域词汇，让每个子代理的命名与架构语言和项目领域语言保持一致。
 
 每个子代理输出：
 
