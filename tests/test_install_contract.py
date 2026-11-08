@@ -27,6 +27,7 @@ class InstallContractTests(unittest.TestCase):
         self.codex = self.root / "codex"
         self.agents = self.root / "agents"
         self.claude = self.root / "home" / ".claude"
+        self.dsh = self.root / "home" / ".dsh"
         (self.source / "scripts").mkdir(parents=True)
         shutil.copy2(INSTALLER, self.source / "scripts" / "install.py")
         self.write(self.source / "AGENTS.md", "# Test configuration\n")
@@ -50,7 +51,7 @@ class InstallContractTests(unittest.TestCase):
         return subprocess.run(
             [sys.executable, str(self.source / "scripts" / "install.py"),
              "--codex-home", str(self.codex), "--agents-home", str(self.agents),
-             "--claude-home", str(self.claude), *args],
+             "--claude-home", str(self.claude), "--dsh-home", str(self.dsh), *args],
             cwd=self.source,
             env={**os.environ, "PYTHONIOENCODING": "utf-8"},
             capture_output=True, text=True, encoding="utf-8", timeout=20,
@@ -95,13 +96,14 @@ class InstallContractTests(unittest.TestCase):
         self.assertEqual(before, after)
         self.assertFalse(self.codex.exists())
         self.assertFalse(self.claude.exists())
+        self.assertFalse(self.dsh.exists())
         self.assertFalse((self.agents / ".backups").exists())
 
     def test_claude_installs_independent_copies_and_is_idempotent(self) -> None:
         self.write(self.source / "skills" / NEW / "references" / "guide.md", "reference\n")
         result = self.run_install()
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        for dest in (self.codex / "AGENTS.md", self.claude / "CLAUDE.md"):
+        for dest in (self.codex / "AGENTS.md", self.claude / "CLAUDE.md", self.dsh / "AGENTS.md"):
             self.assertEqual(dest.read_bytes(), (self.source / "AGENTS.md").read_bytes())
             self.assertFalse(dest.is_symlink())
         self.assertFalse((self.claude / "AGENTS.md").exists())
@@ -123,6 +125,18 @@ class InstallContractTests(unittest.TestCase):
         self.write(self.claude / "skills" / NEW / "SKILL.md", "local edit\n")
         self.assertEqual((self.source / "skills" / NEW / "SKILL.md").read_text(), "new skill\n")
         self.assertEqual((self.agents / "skills" / NEW / "SKILL.md").read_text(), "new skill\n")
+
+    def test_dsh_gets_instructions_only_and_stale_copy_is_backed_up(self) -> None:
+        self.write(self.dsh / "AGENTS.md", "old rules\n")
+        self.write(self.dsh / "attachments" / "keep.txt", "user data\n")
+        result = self.run_install()
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual((self.dsh / "AGENTS.md").read_bytes(), (self.source / "AGENTS.md").read_bytes())
+        backups = list((self.dsh / ".backups").glob("*/AGENTS.md"))
+        self.assertEqual([b.read_text() for b in backups], ["old rules\n"])
+        self.assertFalse((self.dsh / "skills").exists())
+        self.assertEqual((self.dsh / "attachments" / "keep.txt").read_text(), "user data\n")
+        self.assertFalse((self.agents / "AGENTS.md").exists())
 
     def test_claude_backup_and_cleanup_respect_its_own_manifest(self) -> None:
         self.write(self.claude / "CLAUDE.md", "local instructions\n")
@@ -189,6 +203,15 @@ class InstallContractTests(unittest.TestCase):
         self.assertFalse((self.agents / ".backups").exists())
         self.assertEqual((self.source / "skills" / NEW / "SKILL.md").read_text(), "new skill\n")
 
+
+    def test_missing_repo_skills_stops_before_removing_installed_skills(self) -> None:
+        legacy = self.seed_legacy(tracked=True)
+        shutil.rmtree(self.source / "skills")
+        result = self.run_install()
+        self.assertNotEqual(result.returncode, 0)
+        self.assertEqual(legacy.read_text(), "local legacy content\n")
+        self.assertFalse(self.claude.exists())
+        self.assertFalse(self.dsh.exists())
 
     def test_repo_skills_install_with_references_only(self) -> None:
         repo_skills = INSTALLER.parents[1] / "skills"
