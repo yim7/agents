@@ -21,7 +21,7 @@ uv run python scripts/install.py
 自定义目录：
 
 ```bash
-uv run python scripts/install.py --codex-home /path/to/codex --agents-home /path/to/agents --claude-home /path/to/claude --dsh-home /path/to/dsh --gemini-home /path/to/gemini --antigravity-home /path/to/antigravity
+uv run python scripts/install.py --codex-home /path/to/codex --agents-home /path/to/agents --claude-home /path/to/claude --dsh-home /path/to/dsh --gemini-home /path/to/gemini
 ```
 
 安装方式是独立复制，覆盖或删除前备份到目标目录的 `.backups/`。每个目标目录的 `.installed-skills.json` 记录本仓库装过的技能；仓库里删掉的技能，下次同步时只在登记过的目录中移除。目标 `skills/` 是符号链接时，脚本在写入前退出。`tests/` 不参与安装。

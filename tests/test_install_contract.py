@@ -29,7 +29,6 @@ class InstallContractTests(unittest.TestCase):
         self.claude = self.root / "home" / ".claude"
         self.dsh = self.root / "home" / ".dsh"
         self.gemini = self.root / "home" / ".gemini"
-        self.antigravity = self.gemini / "config"
         (self.source / "scripts").mkdir(parents=True)
         shutil.copy2(INSTALLER, self.source / "scripts" / "install.py")
         self.write(self.source / "AGENTS.md", "# Test configuration\n")
@@ -54,7 +53,7 @@ class InstallContractTests(unittest.TestCase):
             [sys.executable, str(self.source / "scripts" / "install.py"),
              "--codex-home", str(self.codex), "--agents-home", str(self.agents),
              "--claude-home", str(self.claude), "--dsh-home", str(self.dsh),
-             "--gemini-home", str(self.gemini), "--antigravity-home", str(self.antigravity), *args],
+             "--gemini-home", str(self.gemini), *args],
             cwd=self.source,
             env={**os.environ, "PYTHONIOENCODING": "utf-8"},
             capture_output=True, text=True, encoding="utf-8", timeout=20,
@@ -101,7 +100,6 @@ class InstallContractTests(unittest.TestCase):
         self.assertFalse(self.claude.exists())
         self.assertFalse(self.dsh.exists())
         self.assertFalse(self.gemini.exists())
-        self.assertFalse(self.antigravity.exists())
         self.assertFalse((self.agents / ".backups").exists())
 
     def test_claude_installs_independent_copies_and_is_idempotent(self) -> None:
@@ -113,13 +111,16 @@ class InstallContractTests(unittest.TestCase):
             self.assertFalse(dest.is_symlink())
         self.assertFalse((self.claude / "AGENTS.md").exists())
         self.assertFalse((self.codex / "skills").exists())
-        for target in (self.agents, self.claude, self.antigravity):
-            installed = target / "skills" / NEW
-            self.assertFalse((target / "skills").is_symlink())
+        for skills_root in (self.agents / "skills", self.claude / "skills", self.gemini / "config" / "skills"):
+            installed = skills_root / NEW
+            self.assertFalse(skills_root.is_symlink())
             self.assertFalse(installed.is_symlink())
             self.assertEqual((installed / "references" / "guide.md").read_text(), "reference\n")
         self.assertEqual(json.loads((self.claude / MANIFEST).read_text()),
                          {"agents": "CLAUDE.md", "skills": [NEW]})
+        self.assertEqual(json.loads((self.gemini / MANIFEST).read_text()),
+                         {"agents": "GEMINI.md", "skills": [NEW]})
+        self.assertFalse((self.gemini / "config" / MANIFEST).exists())
         before = {p.relative_to(self.root): (p.read_bytes(), p.stat().st_mtime_ns)
                   for p in self.root.rglob("*") if p.is_file()}
         result = self.run_install()
@@ -227,11 +228,11 @@ class InstallContractTests(unittest.TestCase):
         result = self.run_install()
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         expected = sorted(p.name for p in repo_skills.iterdir() if p.is_dir())
-        for target in (self.agents, self.claude, self.antigravity):
+        for target, skills_rel in ((self.agents, "skills"), (self.claude, "skills"), (self.gemini, "config/skills")):
             self.assertEqual(json.loads((target / MANIFEST).read_text())["skills"], expected)
             for source_file in repo_skills.rglob("*"):
                 if source_file.is_file():
-                    installed = target / "skills" / source_file.relative_to(repo_skills)
+                    installed = target / skills_rel / source_file.relative_to(repo_skills)
                     self.assertEqual(installed.read_bytes(), source_file.read_bytes())
         for target in (self.codex, self.agents, self.claude):
             self.assertFalse((target / "docs").exists())

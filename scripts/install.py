@@ -19,14 +19,13 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[1]
 MANIFEST_NAME = ".installed-skills.json"
 
-# (参数名, 默认目录, 指令文件装成什么名字或 None, 是否装 skills)
+# (参数名, 默认目录, 指令文件相对路径或 None, skills 目录相对路径或 None)
 TARGETS = [
-    ("claude", "~/.claude", "CLAUDE.md", True),
-    ("dsh", os.environ.get("DSH_HOME") or "~/.dsh", "AGENTS.md", False),
-    ("agents", "~/.agents", None, True),  # DeepSeek Harness 和 Codex 都从这里读 skills
-    ("codex", "~/.codex", "AGENTS.md", False),
-    ("gemini", "~/.gemini", "GEMINI.md", False),
-    ("antigravity", "~/.gemini/config", None, True),
+    ("claude", "~/.claude", "CLAUDE.md", "skills"),
+    ("dsh", os.environ.get("DSH_HOME") or "~/.dsh", "AGENTS.md", None),
+    ("agents", "~/.agents", None, "skills"),  # DeepSeek Harness 和 Codex 都从这里读 skills
+    ("codex", "~/.codex", "AGENTS.md", None),
+    ("gemini", "~/.gemini", "GEMINI.md", "config/skills"),
 ]
 
 
@@ -72,7 +71,7 @@ def install(src: Path, dest: Path, home: Path, backups: Path, dry_run: bool) -> 
     return True
 
 
-def sync(home: Path, agents_name: str | None, with_skills: bool, backups: Path, dry_run: bool) -> None:
+def sync(home: Path, agents_name: str | None, skills_rel: str | None, backups: Path, dry_run: bool) -> None:
     manifest_path = home / MANIFEST_NAME
     manifest = json.loads(manifest_path.read_text()) if manifest_path.exists() else {"agents": None, "skills": []}
     changed = False
@@ -81,19 +80,21 @@ def sync(home: Path, agents_name: str | None, with_skills: bool, backups: Path, 
         changed |= install(REPO_ROOT / "AGENTS.md", home / agents_name, home, backups, dry_run)
         manifest["agents"] = agents_name
 
+    skills_root = home / skills_rel if skills_rel else None
     skills = sorted(d.name for d in (REPO_ROOT / "skills").iterdir()
-                    if d.is_dir() and not d.name.startswith(".")) if with_skills else []
-    for name in skills:
-        changed |= install(REPO_ROOT / "skills" / name, home / "skills" / name, home, backups, dry_run)
-    for name in manifest.get("skills", []):
-        stale = home / "skills" / name
-        if name not in skills and stale.exists():
-            changed = True
-            if dry_run:
-                print(f"  将移除旧 skill: {stale}")
-            else:
-                remove(stale, home, backups)
-                print(f"  已移除旧 skill: {stale}")
+                    if d.is_dir() and not d.name.startswith(".")) if skills_root else []
+    if skills_root:
+        for name in skills:
+            changed |= install(REPO_ROOT / "skills" / name, skills_root / name, home, backups, dry_run)
+        for name in manifest.get("skills", []):
+            stale = skills_root / name
+            if name not in skills and stale.exists():
+                changed = True
+                if dry_run:
+                    print(f"  将移除旧 skill: {stale}")
+                else:
+                    remove(stale, home, backups)
+                    print(f"  已移除旧 skill: {stale}")
     manifest["skills"] = skills
 
     if not dry_run and (changed or not manifest_path.exists()):
@@ -109,9 +110,9 @@ def main() -> None:
     args = parser.parse_args()
 
     homes = {name: getattr(args, f"{name}_home").expanduser().resolve() for name, *_ in TARGETS}
-    for name, _, _, with_skills in TARGETS:
-        if with_skills and (homes[name] / "skills").is_symlink():
-            raise SystemExit(f"请先将软链接替换为独立目录，再安装: {homes[name] / 'skills'}")
+    for name, _, _, skills_rel in TARGETS:
+        if skills_rel and (homes[name] / skills_rel).is_symlink():
+            raise SystemExit(f"请先将软链接替换为独立目录，再安装: {homes[name] / skills_rel}")
 
     skills_dir = REPO_ROOT / "skills"
     if not skills_dir.is_dir() or not any(d.is_dir() and not d.name.startswith(".") for d in skills_dir.iterdir()):
@@ -119,10 +120,10 @@ def main() -> None:
 
     stamp = datetime.now().strftime("%Y%m%d-%H%M%S")
     print(f"仓库目录: {REPO_ROOT}")
-    for name, _, agents_name, with_skills in TARGETS:
+    for name, _, agents_name, skills_rel in TARGETS:
         home = homes[name]
         print(f"{name}: {home}")
-        sync(home, agents_name, with_skills, home / ".backups" / stamp, args.dry_run)
+        sync(home, agents_name, skills_rel, home / ".backups" / stamp, args.dry_run)
 
 
 if __name__ == "__main__":
