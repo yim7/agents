@@ -25,6 +25,8 @@ TARGETS = [
     ("dsh", os.environ.get("DSH_HOME") or "~/.dsh", "AGENTS.md", False),
     ("agents", "~/.agents", None, True),  # DeepSeek Harness 和 Codex 都从这里读 skills
     ("codex", "~/.codex", "AGENTS.md", False),
+    ("gemini", "~/.gemini", "GEMINI.md", False),
+    ("antigravity", "~/.gemini/config", None, True),
 ]
 
 
